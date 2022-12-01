@@ -8,8 +8,6 @@ import axios from 'axios';
 import { Alchemy, Network } from 'alchemy-sdk';
 import contractABI from '../EmpiyaP2P-abi.json';
 import DownloadMetamaskModal from '@/Components/DownloadMetamaskModal';
-import 'react-simple-tailwind-table/build/style.css';
-import { useTableConfiguration, TailwindTable } from 'react-simple-tailwind-table';
 
 const alchemyKey = import.meta.env.VITE_ALCHEMY_API_KEY;
 const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
@@ -72,38 +70,6 @@ export default function Welcome({
         } else {
             setModal(true);
         }
-        // Table
-        const temp = [
-            { name: 'CRIS', status: 'DONE', score: 1000 },
-            { name: 'NIDA', status: 'DONE', score: 200 },
-            { name: 'TEEL', status: 'DOING', score: 450 },
-            { name: 'LOUS', status: 'DOING', score: 800 },
-            { name: 'JAN', status: 'PENDING', score: 0 },
-          ];
-
-          const { tableData, tableColumns } = useTableConfiguration(temp, [
-            {
-              label: 'Username',
-              accessor: 'name',
-              body: { className: 'font-bold text-gray-600' },
-              header: { background: '#345543', className: 'text-white' },
-              align: 'left',
-            },
-            {
-              label: 'Status',
-              accessor: 'status',
-              body: { className: 'px-2' },
-              renderData: (data) => {
-                const color = {
-                  DONE: 'text-green-500',
-                  DOING: 'text-orange-600',
-                  PENDING: 'text-gray-500',
-                };
-                return <span className={color[data.status]}>{data.status}</span>;
-              },
-            },
-            { label: 'Score', accessor: 'score', sort: (a, b) => a.score - b.score },
-        ]);
     }
 
   const route = useRoute();
@@ -608,9 +574,10 @@ export default function Welcome({
       ) : null}
 
       <div className="max-w-6xl mx-auto sm:px-6 lg:px-8">
+        <h3>Header</h3>
         <div className="mt-8 bg-white dark:bg-gray-800 overflow-hidden shadow sm:rounded-lg">
           <div className="grid grid-cols-1 md:grid-cols-2">
-            <TailwindTable data={tableData} columns={tableColumns} />
+                <p>Content</p>
           </div>
         </div>
       </div>
