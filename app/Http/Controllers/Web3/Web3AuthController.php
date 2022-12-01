@@ -49,7 +49,7 @@ class Web3AuthController extends Controller
 
     private function getSignatureMessage($code)
     {
-        return __("You are going to sign in with us.\n\nNonce: :nonce", [
+        return __("You are going to sign in on e-Mpiya P2P MoMo Crypto eXchange.\n\nNonce: :nonce", [
             'nonce' => $code
         ]);
     }

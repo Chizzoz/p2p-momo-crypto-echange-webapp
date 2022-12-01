@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Web3\Web3AuthController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
