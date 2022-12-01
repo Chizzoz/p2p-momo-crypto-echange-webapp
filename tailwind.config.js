@@ -8,6 +8,7 @@ module.exports = {
         './storage/framework/views/*.php',
         './resources/views/**/*.blade.php',
         './resources/js/**/*.tsx',
+        './node_modules/react-simple-tailwind-table/**/*.{html,js,ts,css,scss}',
     ],
 
     theme: {
