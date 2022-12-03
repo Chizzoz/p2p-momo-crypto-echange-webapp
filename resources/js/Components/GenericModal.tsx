@@ -2,23 +2,25 @@ import React, { Fragment, useRef, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { ExclamationCircleIcon } from '@heroicons/react/24/solid'
 
-type DownloadMetamaskModalProps = {
-    modalOpen: boolean;
-    setModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+type Props = {
+    dialogOpen: boolean;
+    setDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    dialogTitle: string;
+    dialogMessage: string;
 }
 
-export default function DownloadMetamaskModal({ modalOpen, setModalOpen }:DownloadMetamaskModalProps) {
+export default function GenericModal({ dialogOpen, setDialogOpen, dialogTitle, dialogMessage }: Props) {
 
     const cancelButtonRef = useRef(null)
 
     return (
-        <Transition.Root show={modalOpen} as={Fragment}>
+        <Transition.Root show={dialogOpen} as={Fragment}>
             <Dialog
                 as="div"
                 auto-reopen="true"
                 className="fixed z-40 inset-0 overflow-y-auto"
                 initialFocus={cancelButtonRef}
-                onClose={setModalOpen}
+                onClose={setDialogOpen}
             >
                 <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                     <Transition.Child
@@ -54,14 +56,11 @@ export default function DownloadMetamaskModal({ modalOpen, setModalOpen }:Downlo
                                     </div>
                                     <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
                                         <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
-                                            Metamask Message
+                                            {dialogTitle}
                                         </Dialog.Title>
                                         <div className="mt-2">
                                             <p className="text-sm text-gray-500">
-                                                Metamask has not installed or detected.
-                                            </p>
-                                            <p className="mt-10">
-                                                <a href="https://metamask.io/download/" target="_blank" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full" onClick={() => setModalOpen(false)}>Download Metamask</a>
+                                                {dialogMessage}
                                             </p>
                                         </div>
                                     </div>
@@ -71,7 +70,7 @@ export default function DownloadMetamaskModal({ modalOpen, setModalOpen }:Downlo
                                 <button
                                     type="button"
                                     className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                                    onClick={() => setModalOpen(false)}
+                                    onClick={() => setDialogOpen(false)}
                                     ref={cancelButtonRef}
                                 >
                                     Cancel

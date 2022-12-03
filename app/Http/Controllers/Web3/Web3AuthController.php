@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use kornrunner\Keccak;
 use Elliptic\EC;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 
@@ -15,6 +16,17 @@ class Web3AuthController extends Controller
 {
     public function authenticate(Request $request)
     {
+        if (Auth::check()) {
+            try {
+                Auth::user()->eth_address = $request->address;
+                Auth::user()->save();
+
+                return true;
+            } catch (\Exception $e) {
+                throw $e->getCode();
+            }
+        }
+
         $nonce = session()->get('login_nonce');
         $message = $this->getSignatureMessage($nonce);
         $this->verifySignature(

@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('email')->unique()->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password')->nullable();
-            $table->string('eth_address')->index()->nullable();
+            $table->string('eth_address')->index()->unique()->nullable();
             $table->string('mobile_number')->nullable();
             $table->rememberToken();
             $table->foreignId('current_team_id')->nullable();
