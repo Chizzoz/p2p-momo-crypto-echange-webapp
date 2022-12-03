@@ -22,7 +22,7 @@ type Props = {
     setCreateTransactionModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-export default function Welcome({modal, setModal, walletAddress, setWalletAddress, createTransactionModalOpen, setCreateTransactionModalOpen, user, window, empiyaP2PContract}: Props) {
+export default function Welcome({ modal, setModal, walletAddress, setWalletAddress, createTransactionModalOpen, setCreateTransactionModalOpen, user, window, empiyaP2PContract }: Props) {
     const route = useRoute();
     const page = useTypedPage();
 
@@ -36,15 +36,14 @@ export default function Welcome({modal, setModal, walletAddress, setWalletAddres
             )}
         >
             {
-                ({modal, setModal, createTransactionModalOpen, setCreateTransactionModalOpen}: Props) => (
-                    <div className="relative flex items-top justify-center min-h-screen bg-gray-100 dark:bg-gray-900 sm:items-center sm:pt-0">
-                        <Head title="Welcome" />
-
-                        <div className="max-w-6xl mx-auto sm:px-6 lg:px-8">
-                            <h3>Header</h3>
-                            <div className="mt-8 bg-white dark:bg-gray-800 overflow-hidden shadow sm:rounded-lg">
-                                <div className="grid grid-cols-1 md:grid-cols-3">
-                                    <ListingCard address={walletAddress} />
+                ({ modal, setModal, createTransactionModalOpen, setCreateTransactionModalOpen }: Props) => (
+                    <div className="py-12">
+                        <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                            <div className="bg-white overflow-hidden shadow-xl sm:rounded-lg">
+                                <div className="p-6 sm:px-20 bg-white border-b border-gray-200">
+                                    <div className="grid grid-cols-1 md:grid-cols-3">
+                                        <ListingCard address={walletAddress} />
+                                    </div>
                                 </div>
                             </div>
                         </div>

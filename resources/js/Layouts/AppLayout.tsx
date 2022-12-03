@@ -18,6 +18,7 @@ import { ethers } from 'ethers';
 import axios from 'axios';
 import GenericModal from '@/Components/GenericModal';
 import { BsCashCoin } from "react-icons/bs";
+import CreateTransactionModal from '@/Components/CreateTransactionModal';
 
 // Alchemy SDK Setup
 const alchemyKey = import.meta.env.VITE_ALCHEMY_API_KEY;
@@ -131,18 +132,22 @@ export default function AppLayout({
         console.log("The Arbitrator account is: " + tx);
     }
 
+    const openCreateTransactionModal = () => {
+        setCreateTransactionModalOpen(true);
+    }
+
     function logout(e: React.FormEvent) {
         e.preventDefault();
         Inertia.post(route('logout'));
     }
 
     return (
-        <div>
+        <div className="flex flex-col min-h-screen">
             <Head title={title} />
 
             <Banner />
 
-            <div className="min-h-screen bg-gray-100">
+            <div className="bg-gray-100">
                 <nav className="bg-white border-b border-gray-100">
                     {/* <!-- Primary Navigation Menu --> */}
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -199,9 +204,10 @@ export default function AppLayout({
                                             <button
                                                 type="button"
                                                 className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+                                                onClick={() => openCreateTransactionModal}
                                             >
-                                                Sell Crypto {'  '}
-                                                <BsCashCoin />
+                                                Sell Crypto
+                                                <span className="pl-2"><BsCashCoin /></span>
                                             </button>
                                         </InertiaLink>
                                         <div className="ml-3 relative">
@@ -577,9 +583,16 @@ export default function AppLayout({
                 ) : null}
 
                 {/* <!-- Page Content --> */}
-                <main>{children({ modal, setModal, walletAddress, setWalletAddress, createTransactionModalOpen, setCreateTransactionModalOpen, user, window })}</main>
+                <main className="flex-1">{children({ alchemy, modal, setModal, walletAddress, setWalletAddress, createTransactionModalOpen, setCreateTransactionModalOpen, user, window })}</main>
             </div>
+
+            <footer className="p-4 bg-white rounded-lg shadow md:px-6 md:py-8 dark:bg-gray-900">
+                <span className="block text-sm text-gray-500 sm:text-center dark:text-gray-400">© 2022 <a href="https://p2p.oneziko.com/" className="hover:underline">e-Mpiya P2P MoMo Crypto eXchange</a>. All Rights Reserved.
+                </span>
+            </footer>
+
             <GenericModal dialogOpen={dialogOpen} setDialogOpen={setDialogOpen} dialogTitle={dialogTitle} dialogMessage={dialogMessage} />
+            <CreateTransactionModal modalOpen={createTransactionModalOpen} setModalOpen={setCreateTransactionModalOpen} />
         </div>
     );
 }
