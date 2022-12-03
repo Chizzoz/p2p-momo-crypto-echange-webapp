@@ -583,7 +583,7 @@ export default function AppLayout({
                 ) : null}
 
                 {/* <!-- Page Content --> */}
-                <main className="flex-1">{children({ alchemy, modal, setModal, walletAddress, setWalletAddress, createTransactionModalOpen, setCreateTransactionModalOpen, user, window })}</main>
+                <main className="flex-1">{children({ modal, setModal, walletAddress, setWalletAddress, createTransactionModalOpen, setCreateTransactionModalOpen, user, window })}</main>
             </div>
 
             <footer className="p-4 bg-white rounded-lg shadow md:px-6 md:py-8 dark:bg-gray-900">

@@ -1,9 +1,23 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Welcome from '@/Components/Welcome';
 import AppLayout from '@/Layouts/AppLayout';
-import { Alchemy, AlchemyProvider } from 'alchemy-sdk';
+import { Alchemy, AlchemyProvider, Network } from 'alchemy-sdk';
 import { ethers } from 'ethers';
 import contractABI from '../EmpiyaP2P-abi.json';
+
+// Alchemy SDK Setup
+const alchemyKey = import.meta.env.VITE_ALCHEMY_API_KEY;
+const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
+const privateKey = import.meta.env.VITE_PRIVATE_KEY;
+
+const settings = {
+    apiKey: alchemyKey,
+    network: Network.MATIC_MUMBAI,
+};
+
+const alchemy = new Alchemy(settings);
+
+declare let window: any;
 
 type Props = {
     alchemy: Alchemy;
@@ -13,11 +27,10 @@ type Props = {
     contractAddress: any;
 }
 
-declare let window: any;
+export default function Dashboard({ walletAddress, setWalletAddress }: Props) {
+    const [userTransactions, setUserTransactions] = useState<any>(undefined);
 
-export default function Dashboard({ alchemy, walletAddress, setWalletAddress, privateKey, contractAddress }: Props) {
-
-    const getTransactions = async () => {
+    async function getTransactions() {
         // Provider
         let provider: AlchemyProvider = await alchemy.config.getProvider();
         // Admin Signer
@@ -31,16 +44,17 @@ export default function Dashboard({ alchemy, walletAddress, setWalletAddress, pr
         // Web3 Provider
         let web3Provider: ethers.providers.Web3Provider = new ethers.providers.Web3Provider(window.ethereum);
         const [address] = await web3Provider.send("eth_requestAccounts", []);
-        setWalletAddress(address);
         // Call Contract functions
-        const escrowContractAddress = await empiyaP2PContract.connect(address).getUserBalance();
-        console.log('escrowContractAddress', ethers.utils.formatEther(escrowContractAddress));
-
-        console.log("Fetching Admin...");
-        const tx = await empiyaP2PContract.connect(address).getUserTransactions();
-        // await tx.wait();
-        console.log("The Arbitrator account is: " + tx);
+        const userTransactions = await empiyaP2PContract.connect(address).getUserTransactions();
+        // console.log('manele', ethers.utils.formatEther(escrowContractAddress));
+        // console.log(structuredClone(userTransactions));
+        setUserTransactions(structuredClone(userTransactions));
     }
+    console.log(userTransactions);
+
+    useEffect(() => {
+        getTransactions();
+    }, []);
 
     return (
         <AppLayout
