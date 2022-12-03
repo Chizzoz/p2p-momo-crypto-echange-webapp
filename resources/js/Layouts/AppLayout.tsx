@@ -1,7 +1,7 @@
 import { Inertia } from '@inertiajs/inertia';
 import { InertiaLink, Head } from '@inertiajs/inertia-react';
 import classNames from 'classnames';
-import React, { ReactNode, useState } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 import useRoute from '@/Hooks/useRoute';
 import useTypedPage from '@/Hooks/useTypedPage';
 import ApplicationMark from '@/Components/ApplicationMark';
@@ -19,6 +19,7 @@ import axios from 'axios';
 import GenericModal from '@/Components/GenericModal';
 import { BsCashCoin } from "react-icons/bs";
 
+// Alchemy SDK Setup
 const alchemyKey = import.meta.env.VITE_ALCHEMY_API_KEY;
 const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
 const privateKey = import.meta.env.VITE_PRIVATE_KEY;
@@ -27,17 +28,8 @@ const settings = {
     apiKey: alchemyKey,
     network: Network.MATIC_MUMBAI,
 };
+
 const alchemy = new Alchemy(settings);
-// Provider
-let provider: AlchemyProvider = await alchemy.config.getProvider();
-// Admin Signer
-const signer = new ethers.Wallet(privateKey, provider);
-// Interact with Contract as Admin
-const empiyaP2PContract = new ethers.Contract(
-    contractAddress,
-    contractABI,
-    signer,
-);
 
 declare let window: any;
 
@@ -116,15 +108,25 @@ export default function AppLayout({
     }
 
     const getTransactions = async () => {
+        // Provider
+        let provider: AlchemyProvider = await alchemy.config.getProvider();
+        // Admin Signer
+        const signer = new ethers.Wallet(privateKey, provider);
+        // Interact with Contract as Admin
+        const empiyaP2PContract = new ethers.Contract(
+            contractAddress,
+            contractABI,
+            signer,
+        );
         // Web3 Provider
         let web3Provider: ethers.providers.Web3Provider = new ethers.providers.Web3Provider(window.ethereum);
         const [address] = await web3Provider.send("eth_requestAccounts", []);
         // Call Contract functions
-        const escrowContractAddress = await empiyaP2PContract.connect('0x0973fc8521E6876275c9424e8F9B74D7De06765B').getUserBalance();
+        const escrowContractAddress = await empiyaP2PContract.connect(address).getUserBalance();
         console.log('escrowContractAddress', ethers.utils.formatEther(escrowContractAddress));
 
         console.log("Fetching Admin...");
-        const tx = await empiyaP2PContract.connect('0x0973fc8521E6876275c9424e8F9B74D7De06765B').getUserTransactions();
+        const tx = await empiyaP2PContract.connect(address).getUserTransactions();
         // await tx.wait();
         console.log("The Arbitrator account is: " + tx);
     }
