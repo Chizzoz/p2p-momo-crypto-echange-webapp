@@ -577,7 +577,7 @@ export default function AppLayout({
                 ) : null}
 
                 {/* <!-- Page Content --> */}
-                <main>{children({ modal, setModal, walletAddress, setWalletAddress, createTransactionModalOpen, setCreateTransactionModalOpen, user, window, empiyaP2PContract })}</main>
+                <main>{children({ modal, setModal, walletAddress, setWalletAddress, createTransactionModalOpen, setCreateTransactionModalOpen, user, window })}</main>
             </div>
             <GenericModal dialogOpen={dialogOpen} setDialogOpen={setDialogOpen} dialogTitle={dialogTitle} dialogMessage={dialogMessage} />
         </div>
