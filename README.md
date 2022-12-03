@@ -1,66 +1,75 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# e-Mpiya P2P MoMo Crypto eXchange
 
-<p align="center">
-<a href="https://travis-ci.org/laravel/framework"><img src="https://travis-ci.org/laravel/framework.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## Useful Links... TL;DR
 
-## About Laravel
+1.  Frontend repository: https://github.com/Chizzoz/p2p-momo-crypto-echange-webapp
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+    Demo DApp:           https://p2p.oneziko.com/
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+2. Smart Contract repository (HardHat): https://github.com/Chizzoz/p2p-momo-crypto-exchange
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## About the DApp
 
-## Learning Laravel
+1.  DApp tech stack
+    * HardHat
+    * Alchemy SDK for Javascript
+    * ethers.js library
+    * Polygonscan API
+    * Metamask API
+    * Laravel 9
+    * Laravel Jetstream
+    * InertiaJS
+    * ReactJS (Typescript)
+    * Tailwind CSS
+    * MySQL DB
+    * 543 Konse Konse Merchant API (SOAP Webservice)
+    * MTN MoMo API (OAuth2.0 Open API)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+2. Product / Service use case
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+This project is aimed at simplifying the process of trading, exchanging or liquidating crypto tokens, in developing countries, like Zambia, where options to trade crypto are limited to a few Centralised Crypto Exchanges that require one to have a bank account and use VISA or MasterCard cards. Mobile Money penetration has surged in recent years, in a lot of developing countries in Africa and deposits, transactions and accounts have surpassed traditional banking numbers. In order to foster finacial inclusion and extend the crypto space to the majority mobile money users, it makes sense to offer a P2P service that integrates crypto with mobile money and break the barriers to entry in this space for users in developing nations.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 2000 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+3. Brief description
 
-## Laravel Sponsors
+e-Mpiya P2P MoMo Crypto eXchange is a peer-to-peer crypto exchange that leverages mobile money and web3 technogoies to trade between users, with an escrow smart contract as a trust layer for the arbitration process.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
+There are two main processes involved on the platform:
+1. Listing: A user can post or list an amount of crypto token, Polygon MATIC in this case, that will be listed as available for any user to buy using their mobile money account. The listing process is facilitated by debiting the sellers account and crediting the escrow account with the listing amount. The listed amount is held in the escrow smart contract account, until it is either bought or withdrawn by seller who deposited it. The Arbitration account can also return the deposited MATIC tokens to the seller or depositing sddress.
 
-### Premium Partners
+2. Buying: A listed post can be bought by any user on the platform. The user who initiates the buying process will receive a push notification on their mobile phone, requesting them to enter their mobile money wallet PIN to authorise payment, after which, a successful PIN authentication will move funds from users wallet to the e-Mpiya merchant wallet, adding a positive balance to the MATIC sellers account and this can be sent to their own mobile money account. At the same time, after the transaction by buyer is confirmed, the escrow smart contract initiates a transfer from the escrow smart contract to the buyers wallet address on Polygon, with the listed MATIC amount.
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Cubet Techno Labs](https://cubettech.com)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[Many](https://www.many.co.uk)**
-- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
-- **[DevSquad](https://devsquad.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[OP.GG](https://op.gg)**
-- **[WebReinvent](https://webreinvent.com/?utm_source=laravel&utm_medium=github&utm_campaign=patreon-sponsors)**
-- **[Lendio](https://lendio.com)**
+## Smart Contracts
 
-## Contributing
+1.  Contract Name:    EmpiyaP2P
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+    Contract Address: 0xF5e8705a763f4581140203f2DA16ecB649aAcD1a
 
-## Code of Conduct
+    Contract Link:    https://mumbai.polygonscan.com/address/0xf5e8705a763f4581140203f2da16ecb649aacd1a#code
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+2.  Contract Name:    Escrow
 
-## Security Vulnerabilities
+    Contract Address: 0x026bef8093104723D91E2D9A5059d36C61CF05B1
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+    Contract Link:    https://mumbai.polygonscan.com/address/0x026bef8093104723d91e2d9a5059d36c61cf05b1#code
 
-## License
+### Contracts Management
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+The two above contracts were deployed by the address: 0x6102118dda3E57d5D1c29A84ee7410A0E160DaBc which then assumed Admin rights over *EmpiyaP2P* Contract. The *EmpiyaP2P* Contract address was then used in the contsructor of *Escrow* Contract to assign it *Arbitrator* rights over the *Escrow* Contract. Therefore, only Admin address can call *onlyAdmin* functions on the *EmpiyaP2P* Contract and only the *EmpiyaP2P* Contract address can call all the functions on *Escrow* Contract. Other wallet addresses can check their balance, deposit tokens to the *Escrow* Contract and withdraw their deposited tokens from the *Escrow* Contract
+
+### Contract Functions
+
+01. function **setAdmin(address _admin)** external onlyAdmin
+02. function **getCaller()** external view onlyAdmin returns (address caller)
+03. function **getOwner()** external view onlyAdmin returns (address owner)
+04. function **getUserBalance()** external view returns (uint balance)
+05. function **getEscrowAddress()** external view onlyAdmin returns (address owner)
+06. function **setEscrowContract(Escrow escrowContractAccount)** external onlyAdmin returns (address)
+07. function **getTotalBalance()** external view onlyAdmin returns (uint256 balance)
+08. function **getUserTransaction(uint256 transactionKey)** external view returns (UserTransactionType.UserTransaction memory transaction)
+09. function **getUserTransactionByUser(address userAddress, uint256 transactionKey)** external view returns (UserTransactionType.UserTransaction memory transaction)
+10. function **getUserTransactions()** external view returns (UserTransactionType.UserTransaction[] memory transactions)
+11. function **getTransactionsByUser(address userAddress)** external view onlyAdmin returns (UserTransactionType.UserTransaction[] memory transactions)
+12. function **deposit()** external payable returns (uint256, UserTransactionType.UserTransaction memory)
+13. function **withdraw(uint256 transactionKey, bytes32 transactionNumber)** external payable returns (uint256 _transactionKey, UserTransactionType.UserTransaction memory userTransaction)
+14. function **transfer(uint256 transactionKey, bytes32 transactionNumber, address payable recipient)** external returns (uint256 _transactionKey, UserTransactionType.UserTransaction memory userTransaction)
+15. function **transferByDepositor(address depositor, uint256 transactionKey, bytes32 transactionNumber, address payable recipient)** external onlyAdmin returns (uint256 _transactionKey, UserTransactionType.UserTransaction memory userTransaction)
