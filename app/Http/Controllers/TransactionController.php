@@ -61,38 +61,43 @@ class TransactionController extends Controller
         // Current User
         $user = auth()->user();
 
-        // New Transaction
-        $transaction = new Transaction;
-        $transaction->transaction_key = $request->transactionKey;
-        $transaction->transaction_number = $request->transactionNumber;
-        $transaction->amount = $request->amount;
-        $transaction->status = $request->status;
-        $transaction->recipient = $request->recipient;
-        $transaction->save();
+        if (Transaction::where('transaction_key', $request->transaction_key)->get()->isEmpty()) {
+            // New Transaction
+            $transaction = new Transaction;
+            $transaction->user_id = $user->id;
+            $transaction->transaction_key = $request->transaction_key;
+            $transaction->transaction_number = $request->transaction_number;
+            $transaction->amount = $request->amount;
+            $transaction->status = $request->status;
+            $transaction->recipient = $request->recipient;
+            $transaction->save();
 
-        // New Transaction Payment Method
-        if($request->has('momo_payment')) {
-            $transaction_payment_method = new TransactionPaymentMethod;
-            $transaction_payment_method->transaction_id = $transaction->id;
-            $transaction_payment_method->payment_method_id = 1;
-            $transaction_payment_method->save();
+            // New Transaction Payment Method
+            if($request->has('momo_payment')) {
+                $transaction_payment_method = new TransactionPaymentMethod;
+                $transaction_payment_method->transaction_id = $transaction->id;
+                $transaction_payment_method->payment_method_id = 1;
+                $transaction_payment_method->save();
+            }
+
+            if($request->has('card_payment')) {
+                $transaction_payment_method = new TransactionPaymentMethod;
+                $transaction_payment_method->transaction_id = $transaction->id;
+                $transaction_payment_method->payment_method_id = 2;
+                $transaction_payment_method->save();
+            }
+
+            // New Transaction Token
+            $transaction_token = new TransactionToken;
+            $transaction_token->transaction_id = $transaction->id;
+            $transaction_token->token_id = $request->token_id;
+            $transaction_token->price = $request->price;
+            $transaction_token->save();
+
+            return response()->json($transaction);
+        } else {
+            return response()->json(['message' => 'Transaction already exists.']);
         }
-
-        if($request->has('card_payment')) {
-            $transaction_payment_method = new TransactionPaymentMethod;
-            $transaction_payment_method->transaction_id = $transaction->id;
-            $transaction_payment_method->payment_method_id = 2;
-            $transaction_payment_method->save();
-        }
-
-        // New Transaction Token
-        $transaction_token = new TransactionToken;
-        $transaction_token->transaction_id = $transaction->id;
-        $transaction_token->token_id = $request->token_id;
-        $transaction_token->price = $request->price;
-        $transaction_token->save();
-
-        return response()->json($transaction);
     }
 
     /**

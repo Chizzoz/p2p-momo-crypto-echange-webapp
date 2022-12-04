@@ -57,9 +57,9 @@ export default function CreateTransactionModal({ modalOpen, setModalOpen }: Crea
     let paymentMethods: any = page.props.payment_methods;
 
     const form = useForm({
-        amount: "",
+        amount: "0",
         token: "",
-        payment_methods: "",
+        momo_payment: "",
         price: 0,
     });
 
@@ -214,15 +214,15 @@ export default function CreateTransactionModal({ modalOpen, setModalOpen }: Crea
                                                                                 :
                                                                                 (
                                                                                     (<div className="flex items-center pl-3" key={paymentMethod.id}>
-                                                                                        <input id='payment_methods' type="checkbox" onChange={e => form.setData('payment_methods', e.currentTarget.value)} value={paymentMethod.method_slug} autoComplete={paymentMethod.method_slug} className="w-4 h-4 text-blue-600 bg-gray-100 rounded border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500" />
-                                                                                        <label htmlFor='payment_methods' className="py-3 ml-2 w-full text-sm font-medium text-gray-900 dark:text-gray-300">{paymentMethod.method}</label>
+                                                                                        <input id='momo_payment' type="checkbox" onChange={e => form.setData('momo_payment', e.currentTarget.value)} value={paymentMethod.method_slug} autoComplete={paymentMethod.method_slug} className="w-4 h-4 text-blue-600 bg-gray-100 rounded border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500" />
+                                                                                        <label htmlFor='momo_payment' className="py-3 ml-2 w-full text-sm font-medium text-gray-900 dark:text-gray-300">{paymentMethod.method}</label>
                                                                                     </div>)
                                                                                 ))
                                                                         })
                                                                     }
                                                                 </li>
                                                             </ul>
-                                                            <InputError message={form.errors.payment_methods} className="mt-2" />
+                                                            <InputError message={form.errors.momo_payment} className="mt-2" />
                                                         </div>
                                                         {/* <!-- Unit Price --> */}
                                                         <div className="col-span-6 sm:col-span-4">
