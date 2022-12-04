@@ -40,6 +40,18 @@ type Props = {
     children({ }): ReactNode;
 }
 
+export type TransactionProp = {
+    _token: any,
+    transaction_key: number;
+    transaction_number: string;
+    amount: number;
+    status: number;
+    recipient: string;
+    momo_payment: string;
+    token_id: number;
+    price: number;
+}
+
 export default function AppLayout({
     title,
     renderHeader,

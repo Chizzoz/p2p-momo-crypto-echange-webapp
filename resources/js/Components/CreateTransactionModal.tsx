@@ -58,7 +58,7 @@ export default function CreateTransactionModal({ modalOpen, setModalOpen }: Crea
 
     const form = useForm({
         amount: "0",
-        token: "",
+        token: undefined,
         momo_payment: "",
         price: 0,
     });

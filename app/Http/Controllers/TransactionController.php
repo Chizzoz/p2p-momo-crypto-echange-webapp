@@ -18,7 +18,7 @@ class TransactionController extends Controller
      */
     public function index()
     {
-        $transactions = DB::table('transactions')->leftJoin('users', 'users.id', '=', 'transactions.user_id')->leftJoin('transaction_tokens', 'transactions.id', '=', 'transaction_tokens.transaction_id')->select('transactions.*', 'users.*', 'transaction_tokens.*')->orderBy('transactions.created_at', 'desc');
+        $transactions = DB::table('transactions')->leftJoin('users', 'users.id', '=', 'transactions.user_id')->leftJoin('transaction_tokens', 'transactions.id', '=', 'transaction_tokens.transaction_id')->select('transactions.*', 'users.*', 'transaction_tokens.*')->orderBy('transactions.created_at', 'desc')->get();
         $transaction_payment_menthods = TransactionPaymentMethod::all();
 
         /* pass variables to view */

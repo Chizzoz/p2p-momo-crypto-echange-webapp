@@ -9,6 +9,7 @@ import CreateTransactionModal from '@/Components/CreateTransactionModal';
 import ListingCard from '@/Components/ListingCard';
 import AppLayout from '@/Layouts/AppLayout';
 import { User } from '@/types';
+import { TransactionProp } from '@/Layouts/AppLayout';
 
 type Props = {
     modal: boolean;
@@ -22,9 +23,11 @@ type Props = {
     setCreateTransactionModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-export default function Welcome({ modal, setModal, walletAddress, setWalletAddress, createTransactionModalOpen, setCreateTransactionModalOpen, user, window, empiyaP2PContract }: Props) {
+export default function Welcome() {
     const route = useRoute();
     const page = useTypedPage();
+
+    let all_transactions: any = page.props.all_transactions;
 
     return (
         <AppLayout
@@ -36,13 +39,18 @@ export default function Welcome({ modal, setModal, walletAddress, setWalletAddre
             )}
         >
             {
-                ({ modal, setModal, createTransactionModalOpen, setCreateTransactionModalOpen }: Props) => (
+                ({ modal, setModal, createTransactionModalOpen, setCreateTransactionModalOpen, walletAddress }: Props) => (
                     <div className="py-12">
                         <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                             <div className="bg-white overflow-hidden shadow-xl sm:rounded-lg">
-                                <div className="p-6 sm:px-20 bg-white border-b border-gray-200">
+                                <div className="p-6 sm:px-6 bg-white border-b border-gray-200">
                                     <div className="grid grid-cols-1 md:grid-cols-3">
-                                        <ListingCard address={walletAddress} />
+                                        {
+                                            all_transactions &&
+                                            Object.entries(all_transactions).map((transaction: any, index: number) => {
+                                                return <ListingCard transaction={transaction} key={index} />
+                                            })
+                                        }
                                     </div>
                                 </div>
                             </div>

@@ -6,6 +6,7 @@ use App\Models\PaymentMethod;
 use App\Models\Token;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -21,9 +22,12 @@ use Inertia\Inertia;
 */
 
 Route::get('/', function () {
+    $all_transactions = DB::table('transactions')->leftJoin('users', 'users.id', '=', 'transactions.user_id')->leftJoin('transaction_tokens', 'transactions.id', '=', 'transaction_tokens.transaction_id')->leftJoin('tokens', 'transaction_tokens.token_id', '=', 'tokens.id')->select('transactions.*', 'users.*', 'transaction_tokens.*', 'tokens.*')->orderBy('transactions.created_at', 'desc')->get();
+
     $tokens = Token::all();
 
     // Assign variables to data
+    $data['all_transactions'] = $all_transactions;
     $data['tokens'] = $tokens;
 
     return Inertia::render('Welcome', $data);
@@ -35,10 +39,12 @@ Route::middleware([
     'verified',
 ])->group(function () {
     Route::get('/dashboard', function () {
+        $transactions_by_user = DB::table('transactions')->leftJoin('users', 'users.id', '=', 'transactions.user_id')->leftJoin('transaction_tokens', 'transactions.id', '=', 'transaction_tokens.transaction_id')->leftJoin('tokens', 'transaction_tokens.token_id', '=', 'tokens.id')->select('transactions.*', 'users.*', 'transaction_tokens.*', 'tokens.*')->orderBy('transactions.created_at', 'desc')->where('transactions.user_id', auth()->user()->id)->get();
         $tokens = Token::all();
         $payment_methods = PaymentMethod::all();
 
         // Assign variables to data
+        $data['transactions_by_user'] = $transactions_by_user;
         $data['tokens'] = $tokens;
         $data['payment_methods'] = $payment_methods;
 

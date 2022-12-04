@@ -7,6 +7,8 @@ import contractABI from '../EmpiyaP2P-abi.json';
 import axios from 'axios';
 import useRoute from '@/Hooks/useRoute';
 import useTypedPage from '@/Hooks/useTypedPage';
+import { TransactionProp } from '@/Layouts/AppLayout';
+import ListingCard from '@/Components/ListingCard';
 
 // Alchemy SDK Setup
 const alchemyKey = import.meta.env.VITE_ALCHEMY_API_KEY;
@@ -30,22 +32,12 @@ type Props = {
     contractAddress: any;
 }
 
-type TransactionProp = {
-    _token: any,
-    transaction_key: number;
-    transaction_number: string;
-    amount: number;
-    status: number;
-    recipient: string;
-    momo_payment: string;
-    token_id: string;
-    price: number;
-}
-
-export default function Dashboard({ walletAddress, setWalletAddress }: Props) {
+export default function Dashboard() {
     const route = useRoute();
     const page = useTypedPage();
     const [userTransactions, setUserTransactions] = useState<any>([]);
+
+    let transactionsByUuser: any = page.props.transactions_by_user;
 
     async function getTransactions() {
         // Provider
@@ -68,7 +60,7 @@ export default function Dashboard({ walletAddress, setWalletAddress }: Props) {
         setUserTransactions(structuredClone(userTransactions));
     }
 
-    async function reconcileTransactions() {
+    function reconcileTransactions() {
         userTransactions.forEach((transaction: [transactionNumber: string, amount: number, status: number, recipient: string], key: number) => {
             console.log("transaction", key, transaction);
             let full_transaction: TransactionProp = {
@@ -79,7 +71,7 @@ export default function Dashboard({ walletAddress, setWalletAddress }: Props) {
                 status: transaction[2],
                 recipient: transaction[3],
                 momo_payment: 'momo_payment',
-                token_id: 'MATIC',
+                token_id: 1,
                 price: 15.78
             }
             console.log(`full_transaction ${key}`, full_transaction);
@@ -114,13 +106,13 @@ export default function Dashboard({ walletAddress, setWalletAddress }: Props) {
                     <div className="py-12">
                         <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                             <div className="bg-white overflow-hidden shadow-xl sm:rounded-lg">
-                                <div className="p-6 sm:px-20 bg-white border-b border-gray-200">
+                                <div className="p-6 sm:px-6 bg-white border-b border-gray-200">
                                     <div className="grid grid-cols-1 md:grid-cols-3">
                                         {
-                                            userTransactions &&
-                                                userTransactions.map((userTransaction: any) => {
-                                                    <Welcome address={userTransaction.transactionKey} />
-                                                })
+                                            transactionsByUuser &&
+                                            Object.entries(transactionsByUuser).map((transaction: any, index: number) => {
+                                                return <ListingCard transaction={transaction} key={index} />
+                                            })
                                         }
                                     </div>
                                 </div>
