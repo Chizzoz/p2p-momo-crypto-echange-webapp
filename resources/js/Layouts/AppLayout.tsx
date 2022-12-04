@@ -200,16 +200,14 @@ export default function AppLayout({
                                             </>
                                         </div>
 
-                                        <InertiaLink href={route('login')} className="ml-4">
-                                            <button
-                                                type="button"
-                                                className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-                                                onClick={() => openCreateTransactionModal}
-                                            >
-                                                Sell Crypto
-                                                <span className="pl-2"><BsCashCoin /></span>
-                                            </button>
-                                        </InertiaLink>
+                                        <button
+                                            type="button"
+                                            className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+                                            onClick={() => setCreateTransactionModalOpen(true)}
+                                        >
+                                            Sell Crypto
+                                            <span className="pl-2"><BsCashCoin /></span>
+                                        </button>
                                         <div className="ml-3 relative">
                                             {/* <!-- Teams Dropdown --> */}
                                             {page.props.jetstream.hasTeamFeatures ? (

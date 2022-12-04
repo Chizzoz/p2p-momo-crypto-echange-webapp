@@ -9,46 +9,106 @@ import { useForm } from '@inertiajs/inertia-react';
 import axios from 'axios';
 import useRoute from '@/Hooks/useRoute';
 import useTypedPage from '@/Hooks/useTypedPage';
+import { Alchemy, AlchemyProvider, Network } from 'alchemy-sdk';
+import { ethers } from 'ethers';
+import contractABI from '../EmpiyaP2P-abi.json';
+
+// Alchemy SDK Setup
+const alchemyKey = import.meta.env.VITE_ALCHEMY_API_KEY;
+const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
+const privateKey = import.meta.env.VITE_PRIVATE_KEY;
+
+const settings = {
+    apiKey: alchemyKey,
+    network: Network.MATIC_MUMBAI,
+};
+
+const alchemy = new Alchemy(settings);
+
+declare let window: any;
 
 type CreateTransactionModalProps = {
     modalOpen: boolean;
     setModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-export default function CreateTransactionModal({ modalOpen, setModalOpen }:CreateTransactionModalProps) {
+type TokenProps = {
+    id: number;
+    token: string;
+    symbol: string;
+    token_slug: string;
+    created_at: string;
+    updated_at: string;
+}
+
+type PaymentMethodProps = {
+    id: number;
+    method: string;
+    method_slug: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export default function CreateTransactionModal({ modalOpen, setModalOpen }: CreateTransactionModalProps) {
     const route = useRoute();
     const page = useTypedPage();
+
+    let tokens: any = page.props.tokens;
+    let paymentMethods: any = page.props.payment_methods;
+
     const form = useForm({
-      mobile_number: "",
-      given_name: "",
-      family_name: "",
-      id_number: "",
-      gender: "",
+        amount: "",
+        token: "",
+        payment_methods: "",
+        price: 0,
     });
 
     const cancelButtonRef = useRef(null);
-    const [responseData, setResponseData] = useState<{[k:string]: string} | undefined>({});
+    const [responseData, setResponseData] = useState<{ [k: string]: string } | undefined>({});
 
     async function submitTransactionDetails() {
-      try {
-          form.processing = true;
-          const response = await axios.post(route('fetch_kyc_details'), {mobile_number: form.data.mobile_number});
-          console.log('Full Response', response.data);
-          let responseKeys = Object.fromEntries(Object.entries(form.data).filter(([_, v]) => v != ""));
-          let responseDataFiltered: {[k:string]: string} | undefined = {};
-          if (!response.data.hasOwnProperty('statusCode')) {
-              responseDataFiltered['mobile_number'] = form.data.mobile_number;
-          }
-          Object.entries(responseKeys).forEach(async ([key, data], i) => {
-              if (responseDataFiltered !== undefined && key !== "mobile_number") {
-                  responseDataFiltered[key] = response.data[key];
-              }
-          });
-          setResponseData(responseDataFiltered);
-          form.processing = false;
-      } catch (error) {
-          console.error("error", error);
-      }
+        form.processing = true;
+        // Provider
+        let provider: AlchemyProvider = await alchemy.config.getProvider();
+        // Admin Signer
+        const signer = new ethers.Wallet(privateKey, provider);
+        // Interact with Contract as Admin
+        const empiyaP2PContract = new ethers.Contract(
+            contractAddress,
+            contractABI,
+            signer,
+        );
+        // Web3 Provider
+        let web3Provider: ethers.providers.Web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+        const [address] = await web3Provider.send("eth_requestAccounts", []);
+
+        // Signer
+        const seller = await web3Provider.getSigner();
+        console.log(signer, form.data);
+        try {
+            // data
+            let abiInterface: ethers.utils.Interface = new ethers.utils.Interface(contractABI);
+            // Send MATIC to Escrow Acc
+            await seller.sendTransaction({
+                to: contractAddress,
+                from: address,
+                value: ethers.utils.parseEther(form.data.amount),
+                gasPrice: ethers.utils.parseUnits('30', 'gwei'),
+                gasLimit: 1000000,
+                data: abiInterface.encodeFunctionData("deposit"),
+            }).then(async (response) => {
+                console.log('makeDeposit', response);
+                // Lets wait.
+                let receipt = await response.wait();
+                console.log('receipt', receipt);
+                console.log(signer, form.data);
+            }).catch((error) => {
+                console.log('deposit error', error);
+            });
+            form.processing = false;
+        } catch (error) {
+            console.error("error", error);
+        }
     }
 
     return (
@@ -95,109 +155,102 @@ export default function CreateTransactionModal({ modalOpen, setModalOpen }:Creat
                                         </Dialog.Title>
                                         <div className="mt-2">
                                             <form>
-                                            <div
-                                                className={classNames(
-                                                'px-4 py-5 bg-white sm:p-6 shadow',
-                                                'sm:rounded-md',
-                                                )}
-                                            >
-                                                <div className="grid grid-cols-6 gap-6">
-                                                    {/* <!-- Mobile Number --> */}
-                                                    <div className="col-span-6 sm:col-span-4">
-                                                    <InputLabel htmlFor="mobile_number" value="Mobile Number" />
-                                                    <TextInput
-                                                        id="mobile_number"
-                                                        type="text"
-                                                        className="mt-1 block w-full"
-                                                        value={form.data.mobile_number}
-                                                        onChange={e => form.setData('mobile_number', e.currentTarget.value)}
-                                                        autoComplete="mobile_number"
-                                                    />
-                                                    <InputError message={form.errors.mobile_number} className="mt-2" />
-                                                    </div>
+                                                <div
+                                                    className={classNames(
+                                                        'px-4 py-5 bg-white sm:p-6 shadow',
+                                                        'sm:rounded-md',
+                                                    )}
+                                                >
+                                                    <div className="grid grid-cols-1 gap-6">
+                                                        {/* <!-- Amount --> */}
+                                                        <div className="col-span-6 sm:col-span-4">
+                                                            <InputLabel htmlFor="amount" value="Amount" />
+                                                            <TextInput
+                                                                id="amount"
+                                                                type="text"
+                                                                className="mt-1 block w-full"
+                                                                value={form.data.amount}
+                                                                onChange={e => form.setData('amount', e.currentTarget.value)}
+                                                                autoComplete="amount"
+                                                            />
+                                                            <InputError message={form.errors.amount} className="mt-2" />
+                                                        </div>
 
-                                                    {/* <!-- Firstname --> */}
-                                                    <div className="col-span-6 sm:col-span-4">
-                                                    <InputLabel htmlFor="given_name" value="Firstname" />
-                                                    <TextInput
-                                                        id="given_name"
-                                                        type="text"
-                                                        className="mt-1 block w-full"
-                                                        value={form.data.given_name}
-                                                        onChange={e => form.setData('given_name', e.currentTarget.value)}
-                                                        autoComplete="given_name"
-                                                    />
-                                                    <InputError message={form.errors.given_name} className="mt-2" />
-                                                    </div>
-
-                                                    {/* <!-- Lastname --> */}
-                                                    <div className="col-span-6 sm:col-span-4">
-                                                    <InputLabel htmlFor="family_name" value="Lastname" />
-                                                    <TextInput
-                                                        id="family_name"
-                                                        type="text"
-                                                        className="mt-1 block w-full"
-                                                        value={form.data.family_name}
-                                                        onChange={e => form.setData('family_name', e.currentTarget.value)}
-                                                        autoComplete="lastname"
-                                                    />
-                                                    <InputError message={form.errors.family_name} className="mt-2" />
-                                                    </div>
-
-                                                    {/* <!-- ID Number --> */}
-                                                    <div className="col-span-6 sm:col-span-4">
-                                                    <InputLabel htmlFor="id_number" value="ID Number" />
-                                                    <TextInput
-                                                        id="id_number"
-                                                        type="text"
-                                                        className="mt-1 block w-full"
-                                                        value={form.data.id_number}
-                                                        onChange={e => form.setData('id_number', e.currentTarget.value)}
-                                                        autoComplete="id_number"
-                                                    />
-                                                    <InputError message={form.errors.id_number} className="mt-2" />
-                                                    </div>
-
-                                                    {/* <!-- Gender --> */}
-                                                    <div className="col-span-6 sm:col-span-4">
-                                                    <InputLabel htmlFor="gender" value="Gender" />
-                                                    {/* <TextInput
-                                                        id="gender"
-                                                        type="text"
-                                                        className="mt-1 block w-full"
-                                                        value={form.data.gender}
-                                                        onChange={e => form.setData('gender', e.currentTarget.value)}
-                                                        autoComplete="gender"
-                                                    /> */}
+                                                        {/* <!-- Token --> */}
+                                                        <div className="col-span-6 sm:col-span-4">
+                                                            <InputLabel htmlFor="token" value="Token" />
 
 
-                                                    <select
-                                                        id="gender"
-                                                        value={form.data.gender}
-                                                        className="mt-1 block w-full"
-                                                        onChange={e => form.setData('gender', e.currentTarget.value)}
-                                                        autoComplete="gender"
-                                                    >
-                                                        <option value="">Select</option>
-                                                        <option value="FEMALE">FEMALE</option>
-                                                        <option value="MALE">MALE</option>
-                                                    </select>
+                                                            <select
+                                                                id="token"
+                                                                value={form.data.token}
+                                                                className="mt-1 block w-full"
+                                                                onChange={e => form.setData('token', e.currentTarget.value)}
+                                                                autoComplete="token"
+                                                            >
+                                                                <option value="">Select</option>
+                                                                {
+                                                                    tokens &&
+                                                                    tokens.map((token: TokenProps) => {
+                                                                        return <option value={token.id} key={token.id}>{token.symbol}</option>
+                                                                    })
+                                                                }
+                                                            </select>
 
-                                                    <InputError message={form.errors.gender} className="mt-2" />
-                                                    </div>
-                                                    <div className="col-span-6 sm:col-span-4">
+                                                            {/* <!-- Payment method --> */}
+                                                            <h3 className="mb-4 mt-4 font-semibold text-gray-900 dark:text-white">Payment Methods</h3>
+                                                            <ul className="w-48 text-sm font-medium text-gray-900 bg-white rounded-lg border border-gray-200 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                                                <li className="w-full rounded-t-lg border-b border-gray-200 dark:border-gray-600">
+                                                                    {
+                                                                        paymentMethods &&
+                                                                        paymentMethods.map((paymentMethod: PaymentMethodProps) => {
+                                                                            return (paymentMethod.id == 2 ?
+                                                                                (
+                                                                                    (<div className="flex items-center pl-3" key={paymentMethod.id}>
+                                                                                        <input disabled id={paymentMethod.method_slug} type="checkbox" autoComplete='payment_methods' className="w-4 h-4 text-blue-600 bg-gray-100 rounded border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500" />
+                                                                                        <label htmlFor={paymentMethod.method_slug} className="py-3 ml-2 w-full text-sm font-medium text-gray-900 dark:text-gray-300">{paymentMethod.method}</label>
+                                                                                    </div>)
+                                                                                )
+                                                                                :
+                                                                                (
+                                                                                    (<div className="flex items-center pl-3" key={paymentMethod.id}>
+                                                                                        <input id='payment_methods' type="checkbox" onChange={e => form.setData('payment_methods', e.currentTarget.value)} value={paymentMethod.method_slug} autoComplete={paymentMethod.method_slug} className="w-4 h-4 text-blue-600 bg-gray-100 rounded border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500" />
+                                                                                        <label htmlFor='payment_methods' className="py-3 ml-2 w-full text-sm font-medium text-gray-900 dark:text-gray-300">{paymentMethod.method}</label>
+                                                                                    </div>)
+                                                                                ))
+                                                                        })
+                                                                    }
+                                                                </li>
+                                                            </ul>
+                                                            <InputError message={form.errors.payment_methods} className="mt-2" />
+                                                        </div>
+                                                        {/* <!-- Unit Price --> */}
+                                                        <div className="col-span-6 sm:col-span-4">
+                                                            <InputLabel htmlFor="price" value="Unit Price in ZMW" />
+                                                            <TextInput
+                                                                id="price"
+                                                                type="number"
+                                                                className="mt-1 block w-full"
+                                                                value={form.data.price}
+                                                                onChange={e => form.setData('price', e.currentTarget.value)}
+                                                                autoComplete="price"
+                                                            />
+                                                            <InputError message={form.errors.price} className="mt-2" />
+                                                        </div>
 
-                                                        <SecondaryButton
-                                                        className={classNames({ 'opacity-25': form.processing }, "mt-2 mr-2")}
-                                                        type="button"
-                                                        onClick={() => submitTransactionDetails()}
-                                                        disabled={form.processing}
-                                                        >
-                                                            SUBMIT
-                                                        </SecondaryButton>
+                                                        <div className="col-span-6 sm:col-span-4">
+
+                                                            <SecondaryButton
+                                                                className={classNames({ 'opacity-25': form.processing }, "mt-2 mr-2")}
+                                                                type="button"
+                                                                onClick={() => submitTransactionDetails()}
+                                                                disabled={form.processing}
+                                                            >
+                                                                SUBMIT
+                                                            </SecondaryButton>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
                                             </form>
                                         </div>
                                     </div>

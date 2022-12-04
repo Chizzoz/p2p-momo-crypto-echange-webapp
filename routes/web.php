@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\Web3\Web3AuthController;
+use App\Models\PaymentMethod;
+use App\Models\Token;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -19,7 +21,12 @@ use Inertia\Inertia;
 */
 
 Route::get('/', function () {
-    return Inertia::render('Welcome');
+    $tokens = Token::all();
+
+    // Assign variables to data
+    $data['tokens'] = $tokens;
+
+    return Inertia::render('Welcome', $data);
 })->name('home');
 
 Route::middleware([
@@ -28,7 +35,14 @@ Route::middleware([
     'verified',
 ])->group(function () {
     Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
+        $tokens = Token::all();
+        $payment_methods = PaymentMethod::all();
+
+        // Assign variables to data
+        $data['tokens'] = $tokens;
+        $data['payment_methods'] = $payment_methods;
+
+        return Inertia::render('Dashboard', $data);
     })->name('dashboard');
 
     Route::post('/transaction/create/post', [TransactionController::class, 'store'])->name('store_transaction');

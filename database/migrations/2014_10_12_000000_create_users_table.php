@@ -21,6 +21,7 @@ return new class extends Migration
             $table->string('password')->nullable();
             $table->string('eth_address')->index()->unique()->nullable();
             $table->string('mobile_number')->nullable();
+            $table->decimal('account_balance', 13, 4)->default(0);
             $table->rememberToken();
             $table->foreignId('current_team_id')->nullable();
             $table->string('profile_photo_path', 2048)->nullable();

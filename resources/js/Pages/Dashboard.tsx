@@ -28,7 +28,7 @@ type Props = {
 }
 
 export default function Dashboard({ walletAddress, setWalletAddress }: Props) {
-    const [userTransactions, setUserTransactions] = useState<any>(undefined);
+    const [userTransactions, setUserTransactions] = useState<any>([]);
 
     async function getTransactions() {
         // Provider
@@ -47,14 +47,13 @@ export default function Dashboard({ walletAddress, setWalletAddress }: Props) {
         // Call Contract functions
         const userTransactions = await empiyaP2PContract.connect(address).getUserTransactions();
         // console.log('manele', ethers.utils.formatEther(escrowContractAddress));
-        // console.log(structuredClone(userTransactions));
+        console.log(userTransactions);
         setUserTransactions(structuredClone(userTransactions));
     }
-    console.log(userTransactions);
 
     useEffect(() => {
         getTransactions();
-    }, []);
+    }, [userTransactions]);
 
     return (
         <AppLayout
@@ -72,7 +71,12 @@ export default function Dashboard({ walletAddress, setWalletAddress }: Props) {
                             <div className="bg-white overflow-hidden shadow-xl sm:rounded-lg">
                                 <div className="p-6 sm:px-20 bg-white border-b border-gray-200">
                                     <div className="grid grid-cols-1 md:grid-cols-3">
-                                        <Welcome address={walletAddress} />
+                                        {
+                                            userTransactions &&
+                                                userTransactions.map((userTransaction: any) => {
+                                                    <Welcome address={userTransaction.transactionKey} />
+                                                })
+                                        }
                                     </div>
                                 </div>
                             </div>
