@@ -8,7 +8,7 @@ Laravel + Inertia/React frontend for the e-Mpiya P2P mobile-money crypto exchang
 
 ## Stack
 
-Hardhat contracts, ethers.js v5, MetaMask, Alchemy (Sepolia RPC), Laravel 9, Jetstream, Inertia, React (TypeScript), Tailwind, MySQL. Fiat rails (PawaPay / MoMo) are wired in a later phase via [laravel-pawapay](https://github.com/Chizzoz/laravel-pawapay).
+Hardhat contracts, ethers.js v5, MetaMask, Alchemy (Sepolia RPC), Laravel 13, Jetstream 5, Inertia 2, React (TypeScript), Tailwind, MySQL. Fiat rails (PawaPay / MoMo) are wired in a later phase via [laravel-pawapay](https://github.com/Chizzoz/laravel-pawapay).
 
 ## Current network (foundation)
 
@@ -26,7 +26,7 @@ ABIs live under `resources/js/abis/` (synced from Hardhat artifacts). Chain help
 
 ## Local setup with DDEV (Laravel 9)
 
-This app stays on **Laravel 9** for now. DDEV runs PHP **8.2**, nginx, and MySQL 8. Laravel 13 is a later upgrade.
+This app runs **Laravel 13** on PHP **8.3**. DDEV uses PHP 8.3, nginx, and MySQL 8. Production (Dokploy) uses FrankenPHP PHP 8.3.
 
 Requirements: [Docker Desktop](https://www.docker.com/products/docker-desktop/) running, and [DDEV](https://ddev.readthedocs.io/).
 

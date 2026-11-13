@@ -20,7 +20,7 @@ return new class extends Migration
             $table->foreign('user_id')->references('id')->on('users');
             $table->unsignedBigInteger('transaction_key');
             $table->string('transaction_number');
-            $table->unsignedDecimal('amount', 27, 18);
+            $table->decimal('amount', 27, 18);
             $table->unsignedInteger('status');
             $table->string('recipient')->nullable();
             $table->timestamps();

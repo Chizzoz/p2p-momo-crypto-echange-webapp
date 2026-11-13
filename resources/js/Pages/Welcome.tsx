@@ -1,8 +1,8 @@
-import { InertiaLink } from '@inertiajs/inertia-react';
+import { Link } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
 import useRoute from '@/Hooks/useRoute';
 import useTypedPage from '@/Hooks/useTypedPage';
-import { Head } from '@inertiajs/inertia-react';
+import { Head } from '@inertiajs/react';
 import { ethers } from 'ethers';
 import DownloadMetamaskModal from '@/Components/DownloadMetamaskModal';
 import CreateTransactionModal from '@/Components/CreateTransactionModal';

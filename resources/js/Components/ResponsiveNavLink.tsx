@@ -1,4 +1,4 @@
-import { InertiaLink } from '@inertiajs/inertia-react';
+import { Link } from '@inertiajs/react';
 import classNames from 'classnames';
 import React, { PropsWithChildren } from 'react';
 
@@ -30,9 +30,9 @@ export default function ResponsiveNavLink({
           {children}
         </button>
       ) : (
-        <InertiaLink href={href || ''} className={classes}>
+        <Link href={href || ''} className={classes}>
           {children}
-        </InertiaLink>
+        </Link>
       )}
     </div>
   );

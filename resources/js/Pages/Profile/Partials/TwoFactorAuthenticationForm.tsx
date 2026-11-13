@@ -1,5 +1,5 @@
-import { Inertia } from '@inertiajs/inertia';
-import { useForm, usePage } from '@inertiajs/inertia-react';
+import { router } from '@inertiajs/react';
+import { useForm, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import classNames from 'classnames';
 import React, { useState } from 'react';
@@ -34,7 +34,7 @@ export default function TwoFactorAuthenticationForm({
   function enableTwoFactorAuthentication() {
     setEnabling(true);
 
-    Inertia.post(
+    router.post(
       '/user/two-factor-authentication',
       {},
       {
@@ -94,7 +94,7 @@ export default function TwoFactorAuthenticationForm({
   function disableTwoFactorAuthentication() {
     setDisabling(true);
 
-    Inertia.delete('/user/two-factor-authentication', {
+    router.delete('/user/two-factor-authentication', {
       preserveScroll: true,
       onSuccess() {
         setDisabling(false);

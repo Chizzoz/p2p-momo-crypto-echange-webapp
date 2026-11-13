@@ -1,4 +1,4 @@
-import { InertiaLink, useForm, Head } from '@inertiajs/inertia-react';
+import { Link, useForm, Head } from '@inertiajs/react';
 import classNames from 'classnames';
 import React from 'react';
 import useRoute from '@/Hooks/useRoute';
@@ -82,22 +82,22 @@ export default function Login({ canResetPassword, status }: Props) {
         <div className="flex flex-col space-y-2 md:flex-row md:items-center md:justify-between md:space-y-0 mt-4">
           {canResetPassword && (
             <div>
-              <InertiaLink
+              <Link
                 href={route('password.request')}
                 className="underline text-sm text-gray-600 hover:text-gray-900"
               >
                 Forgot your password?
-              </InertiaLink>
+              </Link>
             </div>
           )}
 
           <div className="flex items-center justify-end">
-            <InertiaLink
+            <Link
               href={route('register')}
               className="underline text-sm text-gray-600 hover:text-gray-900"
             >
               Need an account?
-            </InertiaLink>
+            </Link>
 
             <PrimaryButton
               className={classNames('ml-4', { 'opacity-25': form.processing })}

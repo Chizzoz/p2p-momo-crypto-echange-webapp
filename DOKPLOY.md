@@ -134,7 +134,7 @@ docker run --rm -p 8080:80 --env-file .env.production empiya-p2p-webapp
 
 ## Notes
 
-- **PHP**: FrankenPHP PHP 8.2 + Laravel 9.
+- **PHP**: FrankenPHP PHP 8.3 + Laravel 13.
 - **Proxies**: `TrustProxies` trusts `*` so Traefik HTTPS forwarding works.
 - **Queues**: default `sync`. Set `QUEUE_CONNECTION=redis` (+ Redis host) to start a worker from `docker/entrypoint.sh`.
 - Rebuild the image whenever `VITE_*` contract addresses change — they are not runtime env vars.

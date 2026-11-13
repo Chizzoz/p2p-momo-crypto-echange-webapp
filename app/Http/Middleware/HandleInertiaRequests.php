@@ -39,7 +39,10 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        return array_merge(parent::share($request), [
+        return [
+            ...parent::share($request),
+            // Keep Jetstream React pages working (they read props.user, not only auth.user).
+            'user' => fn () => $request->user(),
             // Available to AppLayout create-listing modal on every authenticated page.
             'tokens' => fn () => $request->user()
                 ? Token::query()->orderBy('symbol')->get(['id', 'token', 'symbol', 'token_slug'])
@@ -57,6 +60,6 @@ class HandleInertiaRequests extends Middleware
                     ->orderBy('method')
                     ->get(['id', 'method', 'method_slug', 'country_id', 'pawapay_provider'])
                 : [],
-        ]);
+        ];
     }
 }

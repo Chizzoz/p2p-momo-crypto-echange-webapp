@@ -1,5 +1,5 @@
-import { Inertia } from '@inertiajs/inertia';
-import { InertiaLink, Head } from '@inertiajs/inertia-react';
+import { router } from '@inertiajs/react';
+import { Link, Head } from '@inertiajs/react';
 import classNames from 'classnames';
 import React, { ReactNode, useEffect, useState } from 'react';
 import useRoute from '@/Hooks/useRoute';
@@ -62,7 +62,7 @@ export default function AppLayout({
 
     function switchToTeam(e: React.FormEvent, team: Team) {
         e.preventDefault();
-        Inertia.put(
+        router.put(
             route('current-team.update'),
             {
                 team_id: team.id,
@@ -135,7 +135,7 @@ export default function AppLayout({
 
     function logout(e: React.FormEvent) {
         e.preventDefault();
-        Inertia.post(route('logout'));
+        router.post(route('logout'));
     }
 
     return (
@@ -152,9 +152,9 @@ export default function AppLayout({
                             <div className="flex">
                                 {/* <!-- Logo --> */}
                                 <div className="flex-shrink-0 flex items-center">
-                                    <InertiaLink href={route('dashboard')}>
+                                    <Link href={route('dashboard')}>
                                         <ApplicationMark className="block h-9 w-auto" />
-                                    </InertiaLink>
+                                    </Link>
                                 </div>
 
                                 {/* <!-- Navigation Links --> */}
@@ -366,7 +366,7 @@ export default function AppLayout({
                                         <>
                                             <MetamaskButton loginWithMetamask={loginWithMetamask} />
 
-                                            <InertiaLink href={route('login')} className="ml-4">
+                                            <Link href={route('login')} className="ml-4">
                                                 <button
                                                     type="button"
                                                     className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
@@ -386,16 +386,16 @@ export default function AppLayout({
                                                         ></path>
                                                     </svg>
                                                 </button>
-                                            </InertiaLink>
+                                            </Link>
 
-                                            <InertiaLink href={route('register')} className="ml-4">
+                                            <Link href={route('register')} className="ml-4">
                                                 <button
                                                     type="button"
                                                     className="text-white bg-green-500 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800"
                                                 >
                                                     Register
                                                 </button>
-                                            </InertiaLink>
+                                            </Link>
                                         </>
                                     </div>
                             }

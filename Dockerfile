@@ -30,9 +30,9 @@ ENV VITE_CHAIN_ID=$VITE_CHAIN_ID \
 RUN npm run build
 
 # =============================================================================
-# Stage 2: FrankenPHP runtime (Laravel 9 / PHP 8.2)
+# Stage 2: FrankenPHP runtime (Laravel 13 / PHP 8.3)
 # =============================================================================
-FROM dunglas/frankenphp:1-php8.2 AS runner
+FROM dunglas/frankenphp:1-php8.3 AS runner
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \

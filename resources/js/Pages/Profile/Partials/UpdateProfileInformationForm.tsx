@@ -1,5 +1,5 @@
-import { Inertia } from '@inertiajs/inertia';
-import { useForm } from '@inertiajs/inertia-react';
+import { router } from '@inertiajs/react';
+import { useForm } from '@inertiajs/react';
 import classNames from 'classnames';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import useRoute from '@/Hooks/useRoute';
@@ -149,7 +149,7 @@ export default function UpdateProfileInformationForm({ user }: Props) {
   }
 
   function deletePhoto() {
-    Inertia.delete(route('current-user-photo.destroy'), {
+    router.delete(route('current-user-photo.destroy'), {
       preserveScroll: true,
       onSuccess: () => {
         setPhotoPreview(null);

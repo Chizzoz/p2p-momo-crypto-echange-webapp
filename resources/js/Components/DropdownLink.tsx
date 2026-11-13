@@ -1,4 +1,4 @@
-import { InertiaLink } from '@inertiajs/inertia-react';
+import { Link } from '@inertiajs/react';
 import React, { PropsWithChildren } from 'react';
 
 interface Props {
@@ -35,12 +35,12 @@ export default function DropdownLink({
             );
           default:
             return (
-              <InertiaLink
+              <Link
                 href={href || ''}
                 className="block px-4 py-2 text-sm leading-5 text-gray-700 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 transition"
               >
                 {children}
-              </InertiaLink>
+              </Link>
             );
         }
       })()}

@@ -1,4 +1,4 @@
-import { InertiaLink, useForm, Head } from '@inertiajs/inertia-react';
+import { Link, useForm, Head } from '@inertiajs/react';
 import classNames from 'classnames';
 import React from 'react';
 import useRoute from '@/Hooks/useRoute';
@@ -128,12 +128,12 @@ export default function Register() {
         )}
 
         <div className="flex items-center justify-end mt-4">
-          <InertiaLink
+          <Link
             href={route('login')}
             className="underline text-sm text-gray-600 hover:text-gray-900"
           >
             Already registered?
-          </InertiaLink>
+          </Link>
 
           <PrimaryButton
             className={classNames('ml-4', { 'opacity-25': form.processing })}

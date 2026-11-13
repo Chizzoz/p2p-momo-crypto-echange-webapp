@@ -1,4 +1,4 @@
-import { useForm } from '@inertiajs/inertia-react';
+import { useForm } from '@inertiajs/react';
 import classNames from 'classnames';
 import React, { useRef } from 'react';
 import useRoute from '@/Hooks/useRoute';

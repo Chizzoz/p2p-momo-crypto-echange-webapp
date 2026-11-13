@@ -5,7 +5,7 @@ import TextInput from './TextInput';
 import InputError from './InputError';
 import SecondaryButton from './SecondaryButton';
 import classNames from 'classnames';
-import { useForm } from '@inertiajs/inertia-react';
+import { useForm } from '@inertiajs/react';
 import useTypedPage from '@/Hooks/useTypedPage';
 import { chainConfig } from '@/lib/chain';
 import {

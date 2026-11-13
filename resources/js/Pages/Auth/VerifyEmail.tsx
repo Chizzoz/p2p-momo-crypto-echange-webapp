@@ -1,4 +1,4 @@
-import { InertiaLink, useForm, Head } from '@inertiajs/inertia-react';
+import { Link, useForm, Head } from '@inertiajs/react';
 import classNames from 'classnames';
 import React from 'react';
 import useRoute from '@/Hooks/useRoute';
@@ -45,14 +45,14 @@ export default function VerifyEmail({ status }: Props) {
             Resend Verification Email
           </PrimaryButton>
 
-          <InertiaLink
+          <Link
             href={route('logout')}
             method="post"
             as="button"
             className="underline text-sm text-gray-600 hover:text-gray-900"
           >
             Log Out
-          </InertiaLink>
+          </Link>
         </div>
       </form>
     </AuthenticationCard>
