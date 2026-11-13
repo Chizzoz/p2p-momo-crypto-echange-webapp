@@ -1,0 +1,19 @@
+{
+    frankenphp
+    admin off
+    servers {
+        trusted_proxies static private_ranges
+        timeouts {
+            read_body 2m
+            read_header 60s
+            write 2m
+            idle 2m
+        }
+    }
+}
+
+:80 {
+    root * /app/public
+    encode zstd gzip
+    php_server
+}

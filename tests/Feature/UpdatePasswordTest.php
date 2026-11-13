@@ -53,4 +53,20 @@ class UpdatePasswordTest extends TestCase
 
         $this->assertTrue(Hash::check('password', $user->fresh()->password));
     }
+
+    public function test_password_can_be_set_when_user_has_none()
+    {
+        $this->actingAs($user = User::factory()->withoutPassword()->create());
+
+        $this->assertFalse($user->hasPassword());
+
+        $response = $this->put('/user/password', [
+            'password' => 'new-password',
+            'password_confirmation' => 'new-password',
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertTrue(Hash::check('new-password', $user->fresh()->password));
+        $this->assertTrue($user->fresh()->hasPassword());
+    }
 }

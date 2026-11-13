@@ -11,26 +11,17 @@ import DropdownLink from '@/Components/DropdownLink';
 import NavLink from '@/Components/NavLink';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
 import { Team } from '@/types';
-import { Alchemy, AlchemyProvider, Network } from 'alchemy-sdk';
-import contractABI from '../EmpiyaP2P-abi.json';
 import MetamaskButton from '@/Components/MetamaskButton';
-import { ethers } from 'ethers';
 import axios from 'axios';
 import GenericModal from '@/Components/GenericModal';
 import { BsCashCoin } from "react-icons/bs";
 import CreateTransactionModal from '@/Components/CreateTransactionModal';
-
-// Alchemy SDK Setup
-const alchemyKey = import.meta.env.VITE_ALCHEMY_API_KEY;
-const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
-const privateKey = import.meta.env.VITE_PRIVATE_KEY;
-
-const settings = {
-    apiKey: alchemyKey,
-    network: Network.MATIC_MUMBAI,
-};
-
-const alchemy = new Alchemy(settings);
+import {
+    ensureSepoliaChain,
+    getBrowserProvider,
+    getEmpiyaP2P,
+} from '@/lib/contracts';
+import { formatUsdt } from '@/lib/units';
 
 declare let window: any;
 
@@ -84,8 +75,8 @@ export default function AppLayout({
 
     const loginWithMetamask = async () => {
         if (typeof window.ethereum !== 'undefined') {
-            // Web3 Provider
-            let web3Provider: ethers.providers.Web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+            const web3Provider = getBrowserProvider();
+            await ensureSepoliaChain();
 
             const message = (await axios.get(route('metamask.signature'))).data;
             console.log(message);
@@ -121,27 +112,21 @@ export default function AppLayout({
     }
 
     const getTransactions = async () => {
-        // Provider
-        let provider: AlchemyProvider = await alchemy.config.getProvider();
-        // Admin Signer
-        const signer = new ethers.Wallet(privateKey, provider);
-        // Interact with Contract as Admin
-        const empiyaP2PContract = new ethers.Contract(
-            contractAddress,
-            contractABI,
-            signer,
-        );
-        // Web3 Provider
-        let web3Provider: ethers.providers.Web3Provider = new ethers.providers.Web3Provider(window.ethereum);
-        const [address] = await web3Provider.send("eth_requestAccounts", []);
-        // Call Contract functions
-        const escrowContractAddress = await empiyaP2PContract.connect(address).getUserBalance();
-        console.log('escrowContractAddress', ethers.utils.formatEther(escrowContractAddress));
+        try {
+            const web3Provider = getBrowserProvider();
+            await ensureSepoliaChain();
+            const [address] = await web3Provider.send("eth_requestAccounts", []);
+            setWalletAddress(address);
 
-        console.log("Fetching Admin...");
-        const tx = await empiyaP2PContract.connect(address).getUserTransactions();
-        // await tx.wait();
-        console.log("The Arbitrator account is: " + tx);
+            const empiyaP2PContract = getEmpiyaP2P(web3Provider.getSigner());
+            const balance = await empiyaP2PContract.getUserBalance();
+            console.log('escrow USDT balance', formatUsdt(balance));
+
+            const txs = await empiyaP2PContract.getUserTransactions();
+            console.log('user transactions', txs);
+        } catch (error) {
+            console.error('getTransactions failed', error);
+        }
     }
 
     const openCreateTransactionModal = () => {

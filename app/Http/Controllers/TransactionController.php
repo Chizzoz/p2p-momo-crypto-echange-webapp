@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PaymentMethod;
 use App\Models\Transaction;
 use App\Models\TransactionPaymentMethod;
 use App\Models\TransactionToken;
@@ -72,19 +73,33 @@ class TransactionController extends Controller
             $transaction->recipient = $request->recipient;
             $transaction->save();
 
-            // New Transaction Payment Method
-            if($request->has('momo_payment')) {
-                $transaction_payment_method = new TransactionPaymentMethod;
-                $transaction_payment_method->transaction_id = $transaction->id;
-                $transaction_payment_method->payment_method_id = 1;
-                $transaction_payment_method->save();
+            if ($request->filled('momo_payment')) {
+                $momo = PaymentMethod::query()
+                    ->where(function ($query) use ($request) {
+                        $query->where('method_slug', $request->momo_payment)
+                            ->orWhere('pawapay_provider', $request->momo_payment);
+                    })
+                    ->first();
+
+                if ($momo) {
+                    $transaction_payment_method = new TransactionPaymentMethod;
+                    $transaction_payment_method->transaction_id = $transaction->id;
+                    $transaction_payment_method->payment_method_id = $momo->id;
+                    $transaction_payment_method->save();
+                }
             }
 
-            if($request->has('card_payment')) {
-                $transaction_payment_method = new TransactionPaymentMethod;
-                $transaction_payment_method->transaction_id = $transaction->id;
-                $transaction_payment_method->payment_method_id = 2;
-                $transaction_payment_method->save();
+            if ($request->boolean('card_payment') || $request->filled('card_payment')) {
+                $card = PaymentMethod::query()
+                    ->where('method_slug', 'card')
+                    ->first();
+
+                if ($card) {
+                    $transaction_payment_method = new TransactionPaymentMethod;
+                    $transaction_payment_method->transaction_id = $transaction->id;
+                    $transaction_payment_method->payment_method_id = $card->id;
+                    $transaction_payment_method->save();
+                }
             }
 
             // New Transaction Token

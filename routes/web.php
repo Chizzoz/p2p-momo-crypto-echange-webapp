@@ -2,9 +2,7 @@
 
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\Web3\Web3AuthController;
-use App\Models\PaymentMethod;
 use App\Models\Token;
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -20,6 +18,10 @@ use Inertia\Inertia;
 | contains the "web" middleware group. Now create something great!
 |
 */
+
+Route::get('/health', function () {
+    return response('ok', 200)->header('Content-Type', 'text/plain');
+})->name('health');
 
 Route::get('/', function () {
     $all_transactions = DB::table('transactions')->leftJoin('users', 'users.id', '=', 'transactions.user_id')->leftJoin('transaction_tokens', 'transactions.id', '=', 'transaction_tokens.transaction_id')->leftJoin('tokens', 'transaction_tokens.token_id', '=', 'tokens.id')->select('transactions.*', 'users.*', 'transaction_tokens.*', 'tokens.*')->orderBy('transactions.created_at', 'desc')->get();
@@ -40,15 +42,11 @@ Route::middleware([
 ])->group(function () {
     Route::get('/dashboard', function () {
         $transactions_by_user = DB::table('transactions')->leftJoin('users', 'users.id', '=', 'transactions.user_id')->leftJoin('transaction_tokens', 'transactions.id', '=', 'transaction_tokens.transaction_id')->leftJoin('tokens', 'transaction_tokens.token_id', '=', 'tokens.id')->select('transactions.*', 'users.*', 'transaction_tokens.*', 'tokens.*')->orderBy('transactions.created_at', 'desc')->where('transactions.user_id', auth()->user()->id)->get();
-        $tokens = Token::all();
-        $payment_methods = PaymentMethod::all();
 
-        // Assign variables to data
-        $data['transactions_by_user'] = $transactions_by_user;
-        $data['tokens'] = $tokens;
-        $data['payment_methods'] = $payment_methods;
-
-        return Inertia::render('Dashboard', $data);
+        // tokens / countries / payment_methods come from HandleInertiaRequests shared props.
+        return Inertia::render('Dashboard', [
+            'transactions_by_user' => $transactions_by_user,
+        ]);
     })->name('dashboard');
 
     Route::post('/transaction/create/post', [TransactionController::class, 'store'])->name('store_transaction');

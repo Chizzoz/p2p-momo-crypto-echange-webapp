@@ -2,6 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Country;
+use App\Models\PaymentMethod;
+use App\Models\Token;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -37,7 +40,23 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         return array_merge(parent::share($request), [
-            //
+            // Available to AppLayout create-listing modal on every authenticated page.
+            'tokens' => fn () => $request->user()
+                ? Token::query()->orderBy('symbol')->get(['id', 'token', 'symbol', 'token_slug'])
+                : [],
+            // Only markets with at least one seeded MNO (hides LBR/MLI/SSD until providers exist).
+            'countries' => fn () => $request->user()
+                ? Country::query()
+                    ->whereHas('paymentMethods')
+                    ->orderBy('name')
+                    ->get(['id', 'name', 'iso2', 'iso3'])
+                : [],
+            'payment_methods' => fn () => $request->user()
+                ? PaymentMethod::query()
+                    ->whereNotNull('country_id')
+                    ->orderBy('method')
+                    ->get(['id', 'method', 'method_slug', 'country_id', 'pawapay_provider'])
+                : [],
         ]);
     }
 }
