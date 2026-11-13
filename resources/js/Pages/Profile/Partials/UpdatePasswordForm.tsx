@@ -2,6 +2,7 @@ import { useForm } from '@inertiajs/inertia-react';
 import classNames from 'classnames';
 import React, { useRef } from 'react';
 import useRoute from '@/Hooks/useRoute';
+import useTypedPage from '@/Hooks/useTypedPage';
 import ActionMessage from '@/Components/ActionMessage';
 import FormSection from '@/Components/FormSection';
 import InputError from '@/Components/InputError';
@@ -11,6 +12,8 @@ import TextInput from '@/Components/TextInput';
 
 export default function UpdatePasswordForm() {
   const route = useRoute();
+  const page = useTypedPage();
+  const hasPassword = page.props.user.has_password;
   const form = useForm({
     current_password: '',
     password: '',
@@ -41,9 +44,11 @@ export default function UpdatePasswordForm() {
   return (
     <FormSection
       onSubmit={updatePassword}
-      title={'Update Password'}
+      title={hasPassword ? 'Update Password' : 'Set Password'}
       description={
-        'Ensure your account is using a long, random password to stay secure.'
+        hasPassword
+          ? 'Ensure your account is using a long, random password to stay secure.'
+          : 'Create a password so you can also sign in with email when you add one.'
       }
       renderActions={() => (
         <>
@@ -60,27 +65,31 @@ export default function UpdatePasswordForm() {
         </>
       )}
     >
-      <div className="col-span-6 sm:col-span-4">
-        <InputLabel htmlFor="current_password">Current Password</InputLabel>
-        <TextInput
-          id="current_password"
-          type="password"
-          className="mt-1 block w-full"
-          ref={currentPasswordRef}
-          value={form.data.current_password}
-          onChange={e =>
-            form.setData('current_password', e.currentTarget.value)
-          }
-          autoComplete="current-password"
-        />
-        <InputError
-          message={form.errors.current_password}
-          className="mt-2"
-        />
-      </div>
+      {hasPassword ? (
+        <div className="col-span-6 sm:col-span-4">
+          <InputLabel htmlFor="current_password">Current Password</InputLabel>
+          <TextInput
+            id="current_password"
+            type="password"
+            className="mt-1 block w-full"
+            ref={currentPasswordRef}
+            value={form.data.current_password}
+            onChange={e =>
+              form.setData('current_password', e.currentTarget.value)
+            }
+            autoComplete="current-password"
+          />
+          <InputError
+            message={form.errors.current_password}
+            className="mt-2"
+          />
+        </div>
+      ) : null}
 
       <div className="col-span-6 sm:col-span-4">
-        <InputLabel htmlFor="password">New Password</InputLabel>
+        <InputLabel htmlFor="password">
+          {hasPassword ? 'New Password' : 'Password'}
+        </InputLabel>
         <TextInput
           id="password"
           type="password"

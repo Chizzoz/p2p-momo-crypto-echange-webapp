@@ -2,6 +2,7 @@
 
 namespace App\Actions\Fortify;
 
+use App\Models\PaymentMethod;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -20,7 +21,31 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
     {
         Validator::make($input, [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'mobile_number' => ['nullable', 'string', 'max:32'],
+            'country_id' => ['nullable', 'integer', 'exists:countries,id'],
+            'payment_method_id' => [
+                'nullable',
+                'integer',
+                'exists:payment_methods,id',
+                function ($attribute, $value, $fail) use ($input) {
+                    if (! $value) {
+                        return;
+                    }
+
+                    $method = PaymentMethod::query()->find($value);
+                    if (! $method) {
+                        $fail('Selected mobile network is invalid.');
+
+                        return;
+                    }
+
+                    $countryId = isset($input['country_id']) ? (int) $input['country_id'] : null;
+                    if ($countryId && (int) $method->country_id !== $countryId) {
+                        $fail('Selected mobile network does not belong to the chosen country.');
+                    }
+                },
+            ],
             'photo' => ['nullable', 'mimes:jpg,jpeg,png', 'max:1024'],
         ])->validateWithBag('updateProfileInformation');
 
@@ -28,14 +53,37 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
             $user->updateProfilePhoto($input['photo']);
         }
 
-        if ($input['email'] !== $user->email &&
+        $mobileNumber = isset($input['mobile_number'])
+            ? trim((string) $input['mobile_number'])
+            : null;
+        $mobileNumber = $mobileNumber === '' ? null : $mobileNumber;
+
+        $countryId = isset($input['country_id']) && $input['country_id'] !== ''
+            ? (int) $input['country_id']
+            : null;
+        $paymentMethodId = isset($input['payment_method_id']) && $input['payment_method_id'] !== ''
+            ? (int) $input['payment_method_id']
+            : null;
+
+        // Clearing the number also clears country/MNO binding.
+        if ($mobileNumber === null) {
+            $countryId = null;
+            $paymentMethodId = null;
+        }
+
+        $profile = [
+            'name' => $input['name'],
+            'email' => $input['email'] ?? $user->email,
+            'mobile_number' => $mobileNumber,
+            'country_id' => $countryId,
+            'payment_method_id' => $paymentMethodId,
+        ];
+
+        if (($input['email'] ?? null) !== $user->email &&
             $user instanceof MustVerifyEmail) {
-            $this->updateVerifiedUser($user, $input);
+            $this->updateVerifiedUser($user, $profile);
         } else {
-            $user->forceFill([
-                'name' => $input['name'],
-                'email' => $input['email'],
-            ])->save();
+            $user->forceFill($profile)->save();
         }
     }
 
@@ -43,16 +91,14 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
      * Update the given verified user's profile information.
      *
      * @param  mixed  $user
-     * @param  array  $input
+     * @param  array  $profile
      * @return void
      */
-    protected function updateVerifiedUser($user, array $input)
+    protected function updateVerifiedUser($user, array $profile)
     {
-        $user->forceFill([
-            'name' => $input['name'],
-            'email' => $input['email'],
+        $user->forceFill(array_merge($profile, [
             'email_verified_at' => null,
-        ])->save();
+        ]))->save();
 
         $user->sendEmailVerificationNotification();
     }

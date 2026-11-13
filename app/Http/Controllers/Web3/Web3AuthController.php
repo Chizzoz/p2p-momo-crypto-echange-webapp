@@ -9,7 +9,6 @@ use App\Models\User;
 use kornrunner\Keccak;
 use Elliptic\EC;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 
 class Web3AuthController extends Controller
@@ -36,14 +35,15 @@ class Web3AuthController extends Controller
         );
 
         Log::debug("eth address in request: {$request->address}");
+        // Wallet login has no known password — leave null so profile can set one without a current password.
         $user = User::firstOrCreate(
             [
                 'eth_address' => $request->address
             ],
             [
-                "name" => $request->address,
-                "password" => Hash::make(Str::random()),
-                "eth_address" => $request->address,
+                'name' => $request->address,
+                'password' => null,
+                'eth_address' => $request->address,
             ]
         );
         auth()->login($user);

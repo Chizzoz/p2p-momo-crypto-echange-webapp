@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -29,6 +30,8 @@ class User extends Authenticatable
         'password',
         'eth_address',
         'mobile_number',
+        'country_id',
+        'payment_method_id',
         'account_balance',
     ];
 
@@ -60,5 +63,42 @@ class User extends Authenticatable
      */
     protected $appends = [
         'profile_photo_url',
+        'has_password',
     ];
+
+    /**
+     * Whether the user has a password they can authenticate with / confirm.
+     */
+    public function hasPassword(): bool
+    {
+        return filled($this->password);
+    }
+
+    /**
+     * @return bool
+     */
+    public function getHasPasswordAttribute(): bool
+    {
+        return $this->hasPassword();
+    }
+
+    public function country(): BelongsTo
+    {
+        return $this->belongsTo(Country::class);
+    }
+
+    public function paymentMethod(): BelongsTo
+    {
+        return $this->belongsTo(PaymentMethod::class);
+    }
+
+    /**
+     * Profile MoMo wallet is ready when number, country, and MNO are all set.
+     */
+    public function hasBoundMomoAccount(): bool
+    {
+        return filled($this->mobile_number)
+            && filled($this->country_id)
+            && filled($this->payment_method_id);
+    }
 }

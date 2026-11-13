@@ -13,16 +13,34 @@ export interface Team {
 export interface User {
   id: number;
   name: string;
-  email: string;
-  eth_address: string;
-  mobile_number: string;
+  email: Nullable<string>;
+  eth_address: Nullable<string>;
+  mobile_number: Nullable<string>;
+  country_id: Nullable<number>;
+  payment_method_id: Nullable<number>;
   current_team_id: Nullable<number>;
   profile_photo_path: Nullable<string>;
   profile_photo_url: string;
+  has_password: boolean;
   two_factor_enabled: boolean;
   email_verified_at: Nullable<DateTime>;
   created_at: DateTime;
   updated_at: DateTime;
+}
+
+export interface CountryOption {
+  id: number;
+  name: string;
+  iso2: string;
+  iso3: string;
+}
+
+export interface PaymentMethodOption {
+  id: number;
+  method: string;
+  method_slug: string;
+  country_id: Nullable<number>;
+  pawapay_provider: Nullable<string>;
 }
 
 export type InertiaSharedProps<T = {}> = T & {
@@ -42,6 +60,14 @@ export type InertiaSharedProps<T = {}> = T & {
     all_teams?: Team[];
     current_team?: Team;
   };
+  tokens?: Array<{
+    id: number;
+    token: string;
+    symbol: string;
+    token_slug: string;
+  }>;
+  countries?: CountryOption[];
+  payment_methods?: PaymentMethodOption[];
   errorBags: any;
   errors: any;
 };

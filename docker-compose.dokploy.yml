@@ -1,0 +1,59 @@
+# Optional Dokploy Compose deployment for Empiya P2P webapp.
+#
+# Preferred: deploy as a Dokploy **Application** (Dockerfile) and attach a
+# managed MySQL service. Use this compose file only if you want app + MySQL
+# in one stack.
+#
+# Compose path in Dokploy: ./docker-compose.dokploy.yml
+# Prefer Domains UI over Traefik labels (port 80 on service `app`).
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_CHAIN_ID: ${VITE_CHAIN_ID:-11155111}
+        VITE_ALCHEMY_API_KEY: ${VITE_ALCHEMY_API_KEY:-}
+        VITE_EMPIYA_P2P_ADDRESS: ${VITE_EMPIYA_P2P_ADDRESS:-}
+        VITE_EMPIYA_PAYMENTS_ADDRESS: ${VITE_EMPIYA_PAYMENTS_ADDRESS:-}
+        VITE_USDT_ADDRESS: ${VITE_USDT_ADDRESS:-0x7169D38820dfd117C3FA1f22a697dBA58d90BA06}
+        VITE_USDT_DECIMALS: ${VITE_USDT_DECIMALS:-6}
+    env_file:
+      - .env
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      APP_URL: ${APP_URL:-https://p2p.oneziko.com}
+      DB_CONNECTION: mysql
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_DATABASE: ${DB_DATABASE:-empiya_p2p}
+      DB_USERNAME: ${DB_USERNAME:-empiya}
+      DB_PASSWORD: ${DB_PASSWORD}
+      RUN_DB_SEEDERS: ${RUN_DB_SEEDERS:-false}
+      LOG_CHANNEL: ${LOG_CHANNEL:-stderr}
+    volumes:
+      - ../files/p2p-storage:/app/storage/app/public
+    networks:
+      - dokploy-network
+    restart: unless-stopped
+    depends_on:
+      - mysql
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-empiya_p2p}
+      MYSQL_USER: ${DB_USERNAME:-empiya}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-${DB_PASSWORD}}
+    volumes:
+      - ../files/p2p-mysql:/var/lib/mysql
+    networks:
+      - dokploy-network
+    restart: unless-stopped
+
+networks:
+  dokploy-network:
+    external: true

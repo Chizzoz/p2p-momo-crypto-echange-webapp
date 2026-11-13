@@ -48,6 +48,20 @@ class UserFactory extends Factory
     }
 
     /**
+     * Wallet / SIWE user with no password set.
+     */
+    public function withoutPassword()
+    {
+        return $this->state(function (array $attributes) {
+            return [
+                'password' => null,
+                'email' => null,
+                'eth_address' => '0x'.str_repeat('a', 40),
+            ];
+        });
+    }
+
+    /**
      * Indicate that the user should have a personal team.
      *
      * @return $this

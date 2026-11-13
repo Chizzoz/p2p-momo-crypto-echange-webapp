@@ -1,75 +1,79 @@
-# e-Mpiya P2P MoMo Crypto eXchange
+# e-Mpiya P2P MoMo Crypto eXchange (Web App)
 
-## Useful Links... TL;DR
+Laravel + Inertia/React frontend for the e-Mpiya P2P mobile-money crypto exchange.
 
-1.  Frontend repository: https://github.com/Chizzoz/p2p-momo-crypto-echange-webapp
+1. Frontend repository: https://github.com/Chizzoz/p2p-momo-crypto-echange-webapp  
+   Demo DApp: https://p2p.oneziko.com/
+2. Smart contracts (Hardhat): https://github.com/Chizzoz/p2p-momo-crypto-exchange
 
-    Demo DApp:           https://p2p.oneziko.com/
+## Stack
 
-2. Smart Contract repository (HardHat): https://github.com/Chizzoz/p2p-momo-crypto-exchange
+Hardhat contracts, ethers.js v5, MetaMask, Alchemy (Sepolia RPC), Laravel 9, Jetstream, Inertia, React (TypeScript), Tailwind, MySQL. Fiat rails (PawaPay / MoMo) are wired in a later phase via [laravel-pawapay](https://github.com/Chizzoz/laravel-pawapay).
 
-## About the DApp
+## Current network (foundation)
 
-1.  DApp tech stack
-    * HardHat
-    * Alchemy SDK for Javascript
-    * ethers.js library
-    * Polygonscan API
-    * Metamask API
-    * Laravel 9
-    * Laravel Jetstream
-    * InertiaJS
-    * ReactJS (Typescript)
-    * Tailwind CSS
-    * MySQL DB
-    * 543 Konse Konse Merchant API (SOAP Webservice)
-    * MTN MoMo API (OAuth2.0 Open API)
+**Ethereum Sepolia** (chain ID `11155111`) with:
 
-2. Product / Service use case
+| Role | Env var | Notes |
+|------|---------|--------|
+| EmpiyaP2P | `VITE_EMPIYA_P2P_ADDRESS` | Escrow entry point (services 1–2) |
+| EmpiyaPayments | `VITE_EMPIYA_PAYMENTS_ADDRESS` | ABI present; UI not wired yet |
+| Test USDT | `VITE_USDT_ADDRESS` | e.g. `0x7169D38820dfd117C3FA1f22a697dBA58d90BA06` (6 decimals) |
 
-This project is aimed at simplifying the process of trading, exchanging or liquidating crypto tokens, in developing countries, like Zambia, where options to trade crypto are limited to a few Centralised Crypto Exchanges that require one to have a bank account and use VISA or MasterCard cards. Mobile Money penetration has surged in recent years, in a lot of developing countries in Africa and deposits, transactions and accounts have surpassed traditional banking numbers. In order to foster finacial inclusion and extend the crypto space to the majority mobile money users, it makes sense to offer a P2P service that integrates crypto with mobile money and break the barriers to entry in this space for users in developing nations.
+Copy addresses from the contracts repo `.env` after `pnpm deploy:sepolia` / `pnpm deploy-payments:sepolia`. Never put private keys in `VITE_*` variables.
 
-3. Brief description
+ABIs live under `resources/js/abis/` (synced from Hardhat artifacts). Chain helpers: `resources/js/lib/chain.ts`, `contracts.ts`, `units.ts`.
 
-e-Mpiya P2P MoMo Crypto eXchange is a peer-to-peer crypto exchange that leverages mobile money and web3 technogoies to trade between users, with an escrow smart contract as a trust layer for the arbitration process.
+## Local setup with DDEV (Laravel 9)
 
-There are two main processes involved on the platform:
-1. Listing: A user can post or list an amount of crypto token, Polygon MATIC in this case, that will be listed as available for any user to buy using their mobile money account. The listing process is facilitated by debiting the sellers account and crediting the escrow account with the listing amount. The listed amount is held in the escrow smart contract account, until it is either bought or withdrawn by seller who deposited it. The Arbitration account can also return the deposited MATIC tokens to the seller or depositing sddress.
+This app stays on **Laravel 9** for now. DDEV runs PHP **8.2**, nginx, and MySQL 8. Laravel 13 is a later upgrade.
 
-2. Buying: A listed post can be bought by any user on the platform. The user who initiates the buying process will receive a push notification on their mobile phone, requesting them to enter their mobile money wallet PIN to authorise payment, after which, a successful PIN authentication will move funds from users wallet to the e-Mpiya merchant wallet, adding a positive balance to the MATIC sellers account and this can be sent to their own mobile money account. At the same time, after the transaction by buyer is confirmed, the escrow smart contract initiates a transfer from the escrow smart contract to the buyers wallet address on Polygon, with the listed MATIC amount.
+Requirements: [Docker Desktop](https://www.docker.com/products/docker-desktop/) running, and [DDEV](https://ddev.readthedocs.io/).
 
-## Smart Contracts
+```bash
+cd p2p-momo-crypto-echange-webapp
+cp .env.example .env   # if needed; keep VITE_* Sepolia values
+ddev start
+ddev composer install
+ddev exec php artisan key:generate
+ddev exec php artisan migrate
+ddev npm install
+ddev npm run build    # or: ddev npm run dev
+ddev launch
+```
 
-1.  Contract Name:    EmpiyaP2P
+Site URL: `http://empiya-p2p-webapp.ddev.site` (use HTTPS after `brew install mkcert nss && mkcert -install`).  
+DB (from the web container): host `db`, database/user/password `db`.
 
-    Contract Address: 0xF5e8705a763f4581140203f2DA16ecB649aAcD1a
+PHP **gmp** is enabled via `webimage_extra_packages` (required by MetaMask SIWE / `simplito/elliptic-php`).
 
-    Contract Link:    https://mumbai.polygonscan.com/address/0xf5e8705a763f4581140203f2da16ecb649aacd1a#code
+Frontend: Vite 3 + React. A real `npm run build` is required for the UI; without it Laravel looks for `public/build/manifest.json`. If `npm install` fails with TLS/`UNABLE_TO_VERIFY_LEAF_SIGNATURE` on your host, fix corporate CA / proxy settings, or run installs inside DDEV once registry access works.
 
-2.  Contract Name:    Escrow
+**Always use `ddev npm …` for installs/builds inside the project.** Container `node_modules` is a Linux Docker volume (`.ddev/docker-compose.node_modules.yaml`), so a Mac host `npm install` no longer overwrites esbuild for DDEV. After cloning or wiping volumes: `ddev npm ci && ddev npm run build`.
 
-    Contract Address: 0x026bef8093104723D91E2D9A5059d36C61CF05B1
+Useful commands: `ddev ssh`, `ddev artisan …`, `ddev mysql`, `ddev stop`, `ddev launch`.
 
-    Contract Link:    https://mumbai.polygonscan.com/address/0x026bef8093104723d91e2d9a5059d36c61cf05b1#code
+Connect MetaMask to Sepolia. Sellers need Sepolia ETH for gas and test USDT for deposits.
 
-### Contracts Management
+## Production (Dokploy)
 
-The two above contracts were deployed by the address: 0x6102118dda3E57d5D1c29A84ee7410A0E160DaBc which then assumed Admin rights over *EmpiyaP2P* Contract. The *EmpiyaP2P* Contract address was then used in the contsructor of *Escrow* Contract to assign it *Arbitrator* rights over the *Escrow* Contract. Therefore, only Admin address can call *onlyAdmin* functions on the *EmpiyaP2P* Contract and only the *EmpiyaP2P* Contract address can call all the functions on *Escrow* Contract. Other wallet addresses can check their balance, deposit tokens to the *Escrow* Contract and withdraw their deposited tokens from the *Escrow* Contract
+`main` deploys to **https://p2p.oneziko.com** via FrankenPHP (`Dockerfile`). Full steps, env vars, and Vite build-args: see **[DOKPLOY.md](./DOKPLOY.md)**.
 
-### Contract Functions
+## Foundation flows (this pass)
 
-01. function **setAdmin(address _admin)** external onlyAdmin
-02. function **getCaller()** external view onlyAdmin returns (address caller)
-03. function **getOwner()** external view onlyAdmin returns (address owner)
-04. function **getUserBalance()** external view returns (uint balance)
-05. function **getEscrowAddress()** external view onlyAdmin returns (address owner)
-06. function **setEscrowContract(Escrow escrowContractAccount)** external onlyAdmin returns (address)
-07. function **getTotalBalance()** external view onlyAdmin returns (uint256 balance)
-08. function **getUserTransaction(uint256 transactionKey)** external view returns (UserTransactionType.UserTransaction memory transaction)
-09. function **getUserTransactionByUser(address userAddress, uint256 transactionKey)** external view returns (UserTransactionType.UserTransaction memory transaction)
-10. function **getUserTransactions()** external view returns (UserTransactionType.UserTransaction[] memory transactions)
-11. function **getTransactionsByUser(address userAddress)** external view onlyAdmin returns (UserTransactionType.UserTransaction[] memory transactions)
-12. function **deposit()** external payable returns (uint256, UserTransactionType.UserTransaction memory)
-13. function **withdraw(uint256 transactionKey, bytes32 transactionNumber)** external payable returns (uint256 _transactionKey, UserTransactionType.UserTransaction memory userTransaction)
-14. function **transfer(uint256 transactionKey, bytes32 transactionNumber, address payable recipient)** external returns (uint256 _transactionKey, UserTransactionType.UserTransaction memory userTransaction)
-15. function **transferByDepositor(address depositor, uint256 transactionKey, bytes32 transactionNumber, address payable recipient)** external onlyAdmin returns (uint256 _transactionKey, UserTransactionType.UserTransaction memory userTransaction)
+1. MetaMask login (existing SIWE) switches / adds Sepolia.
+2. Create listing: USDT `approve` (reset-to-zero if needed) then EmpiyaP2P `deposit(amount)` — **no** native ETH value.
+3. Dashboard reads `getUserTransactions()` including `reservationId` / `reservedAt`, formats amounts with 6 decimals, and reconciles into Laravel.
+
+## Not in this foundation pass
+
+- `reserve` / ListingCard Buy
+- EmpiyaPayments `pay` / `claimBack` UI
+- Operator `releaseToBuyer` / `settle` / `refund`
+- PawaPay collection/payout webhooks
+
+Those belong in later web2 phases. Operator keys stay server-side only.
+
+## Related contracts docs
+
+See the Hardhat repo README for EmpiyaP2P / EmpiyaPayments roles, caps, and backend settlement rules.
