@@ -16,3 +16,8 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+/e2e-results
+/e2e-report
+/e2e-videos
+/test-results
+/playwright-report

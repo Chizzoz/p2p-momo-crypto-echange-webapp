@@ -3,9 +3,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "e2e:walkthrough": "playwright test e2e/01-list-usdt.spec.ts e2e/02-buy-usdt.spec.ts e2e/03-pay-redeem.spec.ts && node e2e/copy-videos.mjs && node e2e/combine-walkthrough.mjs",
+    "e2e:combine": "node e2e/combine-walkthrough.mjs",
+    "e2e:report": "playwright show-report e2e-report"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@prettier/plugin-php": "^0.22.2",
     "@tailwindcss/forms": "^0.5.9",
     "@tailwindcss/typography": "^0.5.15",
