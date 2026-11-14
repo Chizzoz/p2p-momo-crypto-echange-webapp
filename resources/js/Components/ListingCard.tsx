@@ -11,11 +11,31 @@ import {
 
 declare let window: any;
 
-export default function ListingCard(transaction: any) {
+type ListingRow = Record<string, any>;
+
+type Props = {
+  /** Preferred: plain listing row from the API */
+  listing?: ListingRow;
+  /** Legacy Object.entries([key, row]) shape from Welcome */
+  transaction?: [string | number, ListingRow] | ListingRow;
+};
+
+function resolveListing(props: Props): ListingRow {
+  if (props.listing) {
+    return props.listing;
+  }
+  const raw = props.transaction;
+  if (Array.isArray(raw)) {
+    return raw[1] || {};
+  }
+  return (raw as ListingRow) || {};
+}
+
+export default function ListingCard(props: Props) {
   const route = useRoute();
   const page = useTypedPage();
   const user = page.props.user;
-  const transactionObj = transaction.transaction[1];
+  const transactionObj = resolveListing(props);
   const svgString = toSvg(transactionObj.eth_address || 'e-Mpiya P2P', 56);
   const total =
     Number(transactionObj.price || 0) * Number(transactionObj.amount || 0);

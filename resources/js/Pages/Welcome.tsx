@@ -14,13 +14,10 @@ function WelcomeContent() {
   const route = useRoute();
   const { openSellFlow } = useMarketingActions();
 
-  const allTransactions: any = page.props.all_transactions;
+  const listings = (page.props.all_transactions as any[]) || [];
   const countries = (page.props.countries as CountryOption[]) || [];
   const paymentMethods =
     (page.props.payment_methods as PaymentMethodOption[]) || [];
-  const listings = allTransactions
-    ? Object.entries(allTransactions)
-    : [];
 
   return (
     <>
@@ -47,12 +44,12 @@ function WelcomeContent() {
               confirmed. Built for African wallets you already use.
             </p>
             <div className="hero-rise-delay-2 mt-8 flex flex-wrap gap-3">
-              <a
-                href="#marketplace"
+              <Link
+                href={route('listings')}
                 className="inline-flex items-center justify-center rounded-lg bg-emerald px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-deep"
               >
                 Buy USDT with MoMo
-              </a>
+              </Link>
               <button
                 type="button"
                 onClick={openSellFlow}
@@ -112,8 +109,8 @@ function WelcomeContent() {
                 Open listing →
               </span>
             </button>
-            <a
-              href="#marketplace"
+            <Link
+              href={route('listings')}
               className="group rounded-2xl border border-[var(--line)] bg-paper p-6 transition hover:border-emerald"
             >
               <p className="font-display text-xl font-bold text-ink">
@@ -125,7 +122,7 @@ function WelcomeContent() {
               <span className="mt-6 inline-flex text-sm font-semibold text-emerald group-hover:underline">
                 Browse offers →
               </span>
-            </a>
+            </Link>
             <Link
               href={route('pay')}
               className="group rounded-2xl border border-[var(--line)] bg-paper p-6 transition hover:border-emerald"
@@ -227,24 +224,45 @@ function WelcomeContent() {
                 Live marketplace
               </h2>
               <p className="mt-3 max-w-xl text-ink-muted">
-                Request USDT against open offers. Rates and totals are shown before you commit.
+                Open USDT offers for MoMo buyers. Full catalog on the listings page.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={openSellFlow}
-              className="inline-flex items-center justify-center rounded-lg border border-ink/15 bg-white px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-emerald"
-            >
-              List USDT
-            </button>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href={route('listings')}
+                className="inline-flex items-center justify-center rounded-lg bg-emerald px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-deep"
+              >
+                All listings
+              </Link>
+              <button
+                type="button"
+                onClick={openSellFlow}
+                className="inline-flex items-center justify-center rounded-lg border border-ink/15 bg-white px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-emerald"
+              >
+                List USDT
+              </button>
+            </div>
           </div>
 
           {listings.length > 0 ? (
-            <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {listings.map((transaction: any, index: number) => (
-                <ListingCard transaction={transaction} key={index} />
-              ))}
-            </div>
+            <>
+              <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {listings.map((listing: any) => (
+                  <ListingCard
+                    listing={listing}
+                    key={listing.listing_id || listing.transaction_number}
+                  />
+                ))}
+              </div>
+              <div className="mt-8 text-center">
+                <Link
+                  href={route('listings')}
+                  className="text-sm font-semibold text-emerald hover:underline"
+                >
+                  View all USDT listings →
+                </Link>
+              </div>
+            </>
           ) : (
             <div className="mt-10 rounded-2xl border border-dashed border-[var(--line)] bg-paper px-6 py-16 text-center">
               <p className="font-display text-xl font-semibold text-ink">
@@ -274,12 +292,12 @@ function WelcomeContent() {
             List inventory, buy from peers, or pay someone who redeems in mobile money.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <a
-              href="#marketplace"
+            <Link
+              href={route('listings')}
               className="inline-flex rounded-lg bg-emerald px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-deep"
             >
               Buy USDT with MoMo
-            </a>
+            </Link>
             <button
               type="button"
               onClick={openSellFlow}

@@ -70,18 +70,21 @@ export default function MarketingLayout({ title, children }: Props) {
             </Link>
 
             <nav className="hidden items-center gap-6 text-sm font-medium text-ink-muted md:flex">
-              <a href="#use-cases" className="transition hover:text-ink">
+              <Link href={`${route('home')}#use-cases`} className="transition hover:text-ink">
                 Use cases
-              </a>
-              <a href="#how-it-works" className="transition hover:text-ink">
+              </Link>
+              <Link href={`${route('home')}#how-it-works`} className="transition hover:text-ink">
                 How it works
-              </a>
-              <a href="#markets" className="transition hover:text-ink">
+              </Link>
+              <Link href={`${route('home')}#markets`} className="transition hover:text-ink">
                 Markets
-              </a>
-              <a href="#marketplace" className="transition hover:text-ink">
-                Marketplace
-              </a>
+              </Link>
+              <Link
+                href={route('listings')}
+                className={`transition hover:text-ink ${route().current('listings') ? 'text-ink' : ''}`}
+              >
+                Listings
+              </Link>
               <Link href={route('pay')} className="transition hover:text-ink">
                 Pay &amp; redeem
               </Link>
@@ -142,10 +145,10 @@ export default function MarketingLayout({ title, children }: Props) {
           {mobileOpen && (
             <div className="border-t border-[var(--line)] px-4 py-4 md:hidden">
               <div className="flex flex-col gap-3 text-sm font-medium text-ink">
-                <a href="#use-cases" onClick={() => setMobileOpen(false)}>Use cases</a>
-                <a href="#how-it-works" onClick={() => setMobileOpen(false)}>How it works</a>
-                <a href="#markets" onClick={() => setMobileOpen(false)}>Markets</a>
-                <a href="#marketplace" onClick={() => setMobileOpen(false)}>Marketplace</a>
+                <Link href={`${route('home')}#use-cases`} onClick={() => setMobileOpen(false)}>Use cases</Link>
+                <Link href={`${route('home')}#how-it-works`} onClick={() => setMobileOpen(false)}>How it works</Link>
+                <Link href={`${route('home')}#markets`} onClick={() => setMobileOpen(false)}>Markets</Link>
+                <Link href={route('listings')} onClick={() => setMobileOpen(false)}>Listings</Link>
                 <Link href={route('pay')} onClick={() => setMobileOpen(false)}>Pay &amp; redeem</Link>
                 {user ? (
                   <>
@@ -194,8 +197,9 @@ export default function MarketingLayout({ title, children }: Props) {
               . All rights reserved.
             </p>
             <div className="flex gap-4">
+              <Link href={route('listings')} className="hover:text-ink">Listings</Link>
               <Link href={route('pay')} className="hover:text-ink">Pay &amp; redeem</Link>
-              <a href="#markets" className="hover:text-ink">Markets</a>
+              <Link href={`${route('home')}#markets`} className="hover:text-ink">Markets</Link>
             </div>
           </div>
         </footer>
