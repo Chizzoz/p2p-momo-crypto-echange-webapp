@@ -8,7 +8,7 @@ Laravel + Inertia/React frontend for the e-Mpiya P2P mobile-money crypto exchang
 
 ## Stack
 
-Hardhat contracts, ethers.js v5, MetaMask, Alchemy (Sepolia RPC), Laravel 13, Jetstream 5, Inertia 2, React (TypeScript), Tailwind, MySQL. Fiat rails (PawaPay / MoMo) are wired in a later phase via [laravel-pawapay](https://github.com/Chizzoz/laravel-pawapay).
+Hardhat contracts, ethers.js v5, MetaMask, Alchemy (Sepolia RPC), Laravel 13, Jetstream 5, Inertia 2, React (TypeScript), Tailwind, MySQL. Fiat rails use bundled [laravel-pawapay](https://github.com/Chizzoz/laravel-pawapay) (`packages/laravel-pawapay`) for deposits/payouts plus a server-side Empiya operator (`scripts/empiya-operator.mjs`).
 
 ## Current network (foundation)
 
@@ -65,14 +65,23 @@ Connect MetaMask to Sepolia. Sellers need Sepolia ETH for gas and test USDT for 
 2. Create listing: USDT `approve` (reset-to-zero if needed) then EmpiyaP2P `deposit(amount)` — **no** native ETH value.
 3. Dashboard reads `getUserTransactions()` including `reservationId` / `reservedAt`, formats amounts with 6 decimals, and reconciles into Laravel.
 
-## Not in this foundation pass
+## MoMo + settlement flows
 
-- `reserve` / ListingCard Buy
-- EmpiyaPayments `pay` / `claimBack` UI
-- Operator `releaseToBuyer` / `settle` / `refund`
-- PawaPay collection/payout webhooks
+1. **Buy USDT**: buyer requests buy → seller confirms with on-chain `reserve(buyer)` → buyer continues payment → PawaPay deposit → operator `releaseToBuyer` → seller MoMo payout.
+2. **Pay & redeem**: client `EmpiyaPayments.pay` → PawaPay payout to recipient MoMo → operator `settle`.
+3. Webhooks: `/webhooks/pawapay/deposits` and `/webhooks/pawapay/payouts` (plus minute poller fallback).
 
-Those belong in later web2 phases. Operator keys stay server-side only.
+Set `PAWAPAY_API_KEY` (sandbox) and `EMPIYA_OPERATOR_PRIVATE_KEY` before end-to-end MoMo tests. Never put operator keys in `VITE_*`.
+
+Sandbox MSISDNs (no real PIN): [PawaPay test numbers](https://docs.pawapay.io/v2/docs/test_numbers). Zambia **COMPLETED** examples:
+
+| Provider | Code | Deposit / Payout MSISDN |
+| --- | --- | --- |
+| MTN | `MTN_MOMO_ZMB` | `260763456789` |
+| Airtel | `AIRTEL_OAPI_ZMB` | `260973456789` |
+| Zamtel | `ZAMTEL_ZMB` | `260953456700` |
+
+API-only smoke (no chain): `ddev exec php scripts/smoke-pawapay-sandbox.php`
 
 ## Related contracts docs
 
