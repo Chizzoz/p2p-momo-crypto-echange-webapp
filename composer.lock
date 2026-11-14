@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "edea0173bce213953ad6773fe8bfb7a9",
+    "content-hash": "d0c539e6462e3aca6a8dda7624d53da7",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -197,6 +197,49 @@
             ],
             "time": "2026-09-06T14:11:38+00:00",
             "published-time": "2026-09-06T14:15:00+00:00"
+        },
+        {
+            "name": "chizzoz/laravel-pawapay",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "packages/laravel-pawapay",
+                "reference": "fa509f8e5695b6acdbc3c2186f9fc2ace9d3a240"
+            },
+            "require": {
+                "illuminate/support": "^10.0|^11.0|^12.0|^13.0",
+                "php": "^8.2"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Chizzoz\\PawaPay\\PawaPayServiceProvider"
+                    ],
+                    "aliases": {
+                        "PawaPay": "Chizzoz\\PawaPay\\Facades\\PawaPay"
+                    }
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Chizzoz\\PawaPay\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Chizzoz",
+                    "email": "developer@chizzoz.com"
+                }
+            ],
+            "description": "A Laravel package for PawaPay v2 integration with mobile money providers in Zambia.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
         },
         {
             "name": "dasprid/enum",

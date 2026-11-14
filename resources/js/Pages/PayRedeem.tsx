@@ -1,5 +1,7 @@
 import { Link } from '@inertiajs/react';
 import React, { FormEvent, useMemo, useState } from 'react';
+import axios from 'axios';
+import { ethers } from 'ethers';
 import CountryFlag from '@/Components/CountryFlag';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
@@ -8,7 +10,16 @@ import TextInput from '@/Components/TextInput';
 import MarketingLayout from '@/Layouts/MarketingLayout';
 import useRoute from '@/Hooks/useRoute';
 import useTypedPage from '@/Hooks/useTypedPage';
+import { chainConfig } from '@/lib/chain';
+import {
+  ensureSepoliaChain,
+  ensureUsdtAllowance,
+  formatTxError,
+  getBrowserSigner,
+  getEmpiyaPayments,
+} from '@/lib/contracts';
 import { detectMsisdn, formatMsisdnDisplay } from '@/lib/msisdn';
+import { parseUsdt } from '@/lib/units';
 import { CountryOption, PaymentMethodOption } from '@/types';
 
 type FormState = 'idle' | 'reviewing' | 'submitting' | 'pending' | 'error';
@@ -16,11 +27,13 @@ type FormState = 'idle' | 'reviewing' | 'submitting' | 'pending' | 'error';
 export default function PayRedeem() {
   const page = useTypedPage();
   const route = useRoute();
+  const user = page.props.user;
   const countries = (page.props.countries as CountryOption[]) || [];
   const paymentMethods =
     (page.props.payment_methods as PaymentMethodOption[]) || [];
 
   const [amount, setAmount] = useState('');
+  const [fiatAmount, setFiatAmount] = useState('');
   const [mobile, setMobile] = useState('');
   const [countryIso3, setCountryIso3] = useState(
     countries[0]?.iso3 || 'ZMB',
@@ -54,11 +67,23 @@ export default function PayRedeem() {
     networks[0] ||
     null;
 
+  const currency = 'ZMW';
+
   function goToReview(event: FormEvent) {
     event.preventDefault();
+    if (!user) {
+      setFormState('error');
+      setStatusMessage('Log in to pay and redeem.');
+      return;
+    }
     if (!amount || Number(amount) <= 0) {
       setFormState('error');
       setStatusMessage('Enter a USDT amount greater than zero.');
+      return;
+    }
+    if (!fiatAmount || Number(fiatAmount) <= 0) {
+      setFormState('error');
+      setStatusMessage('Enter the MoMo fiat amount to pay out.');
       return;
     }
     if (!mobile || !selectedCountry || !selectedMethod) {
@@ -71,15 +96,79 @@ export default function PayRedeem() {
   }
 
   async function submitPayment() {
-    setFormState('submitting');
-    setStatusMessage('Preparing EmpiyaPayments…');
+    if (!selectedMethod?.pawapay_provider) {
+      setFormState('error');
+      setStatusMessage('Selected network is missing a PawaPay provider.');
+      return;
+    }
 
-    // UI shell first — wire getEmpiyaPayments().pay(...) in a follow-up.
-    await new Promise(resolve => setTimeout(resolve, 700));
-    setFormState('pending');
-    setStatusMessage(
-      'Pay & redeem UI is ready. On-chain EmpiyaPayments settlement comes next — your details were not submitted.',
-    );
+    setFormState('submitting');
+    setStatusMessage('Approving USDT and calling EmpiyaPayments.pay…');
+
+    try {
+      await ensureSepoliaChain();
+      const signer = await getBrowserSigner();
+      const payer = await signer.getAddress();
+      const payments = getEmpiyaPayments(signer);
+      const paymentsAddress = chainConfig.empiyaPayments();
+      if (!paymentsAddress) {
+        throw new Error('EmpiyaPayments address is not configured.');
+      }
+
+      const amountBn = parseUsdt(amount);
+      await ensureUsdtAllowance(payer, paymentsAddress, amountBn, signer);
+
+      const paymentId = ethers.utils.hexlify(ethers.utils.randomBytes(32));
+      const payTx = await payments.pay(paymentId, amountBn);
+      await payTx.wait();
+
+      setStatusMessage('On-chain pay confirmed. Starting MoMo payout…');
+
+      const { data } = await axios.post(route('pay_redeem.store'), {
+        payment_id: paymentId,
+        amount_usdt: amount,
+        fiat_amount: fiatAmount,
+        currency,
+        phone: mobile,
+        provider: selectedMethod.pawapay_provider,
+        payment_method_id: selectedMethod.id,
+      });
+
+      setFormState('pending');
+      setStatusMessage(
+        data.message ||
+          'MoMo payout started. On-chain settle runs after PawaPay confirms.',
+      );
+
+      if (data.transfer?.id) {
+        pollTransfer(data.transfer.id);
+      }
+    } catch (error: any) {
+      setFormState('error');
+      setStatusMessage(formatTxError(error) || 'Pay & redeem failed.');
+    }
+  }
+
+  async function pollTransfer(id: number) {
+    try {
+      const { data } = await axios.get(route('momo_transfers.status', id));
+      const status = data.transfer?.status;
+      if (status === 'COMPLETED') {
+        setStatusMessage(
+          'MoMo payout completed and on-chain settle has been requested.',
+        );
+        return;
+      }
+      if (status === 'FAILED') {
+        setStatusMessage(
+          'MoMo payout failed. A chain refund will be attempted.',
+        );
+        return;
+      }
+      setTimeout(() => pollTransfer(id), 8000);
+    } catch {
+      // ignore
+    }
   }
 
   return (
@@ -92,8 +181,8 @@ export default function PayRedeem() {
           Pay with USDT. Redeem as mobile money.
         </h1>
         <p className="mt-3 text-ink-muted">
-          Lock USDT for a recipient who collects fiat on their MoMo wallet.
-          Contract wiring lands after this UI shell.
+          Lock USDT in EmpiyaPayments, then PawaPay pays the recipient via MoMo.
+          Operator settle finalizes the on-chain payment.
         </p>
 
         <form
@@ -110,6 +199,20 @@ export default function PayRedeem() {
               className="mt-1 block w-full"
               value={amount}
               onChange={e => setAmount(e.currentTarget.value)}
+              required
+            />
+          </div>
+
+          <div>
+            <InputLabel htmlFor="fiat_amount" value="MoMo fiat amount (ZMW)" />
+            <TextInput
+              id="fiat_amount"
+              type="number"
+              min="0"
+              step="0.01"
+              className="mt-1 block w-full"
+              value={fiatAmount}
+              onChange={e => setFiatAmount(e.currentTarget.value)}
               required
             />
           </div>
@@ -215,6 +318,12 @@ export default function PayRedeem() {
                   <dd className="font-semibold text-ink">{amount} USDT</dd>
                 </div>
                 <div className="flex justify-between gap-3">
+                  <dt className="text-ink-muted">Recipient gets</dt>
+                  <dd className="font-semibold text-ink">
+                    {fiatAmount} {currency}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-3">
                   <dt className="text-ink-muted">Recipient</dt>
                   <dd className="text-right font-medium text-ink">
                     {mobile}
@@ -243,19 +352,16 @@ export default function PayRedeem() {
                   </button>
                 </div>
               )}
-              {formState === 'submitting' && (
+              {(formState === 'submitting' || formState === 'pending') && (
                 <p className="mt-3 text-ink-muted">{statusMessage}</p>
               )}
               {formState === 'pending' && (
-                <div className="mt-3 space-y-3">
-                  <p className="text-emerald">{statusMessage}</p>
-                  <Link
-                    href={route('home')}
-                    className="inline-flex font-semibold text-ink underline"
-                  >
-                    Back to home
-                  </Link>
-                </div>
+                <Link
+                  href={route('home')}
+                  className="mt-3 inline-flex font-semibold text-ink underline"
+                >
+                  Back to home
+                </Link>
               )}
             </div>
           )}

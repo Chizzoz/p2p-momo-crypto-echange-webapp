@@ -75,7 +75,27 @@ SESSION_DOMAIN=.oneziko.com
 
 # First deploy only — seeds currencies / countries / MNOs / USDT token
 RUN_DB_SEEDERS=true
+
+# PawaPay sandbox (required before MoMo deposit/payout tests)
+PAWAPAY_API_KEY=
+PAWAPAY_BASE_URL=https://api.sandbox.pawapay.io/v2
+PAWAPAY_MODE=sandbox
+PAWAPAY_KEY_ID=1
+PAWAPAY_PRIVATE_KEY=
+
+# Empiya operator (server-side only)
+EMPIYA_RPC_URL=
+EMPIYA_CHAIN_ID=11155111
+EMPIYA_OPERATOR_PRIVATE_KEY=
+EMPIYA_P2P_ADDRESS=
+EMPIYA_PAYMENTS_ADDRESS=
 ```
+
+PawaPay webhooks (sandbox dashboard):
+
+- `POST https://p2p.oneziko.com/webhooks/pawapay/deposits`
+- `POST https://p2p.oneziko.com/webhooks/pawapay/payouts`
+
 
 Generate `APP_KEY` locally:
 

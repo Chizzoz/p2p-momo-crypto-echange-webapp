@@ -15,7 +15,17 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')->hourly();
+        // Re-check non-terminal MoMo transfers every minute as a webhook fallback.
+        $schedule->call(function () {
+            \App\Models\MomoTransfer::query()
+                ->whereNotIn('status', ['COMPLETED', 'FAILED'])
+                ->orderBy('id')
+                ->limit(25)
+                ->pluck('id')
+                ->each(function (int $id) {
+                    \App\Jobs\CheckMomoTransferStatus::dispatch($id);
+                });
+        })->everyMinute();
     }
 
     /**

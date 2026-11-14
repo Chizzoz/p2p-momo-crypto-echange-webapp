@@ -178,6 +178,15 @@ export default function AppLayout({
 
                                 <div className="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
                                     <NavLink
+                                        href={route('listings')}
+                                        active={route().current('listings')}
+                                    >
+                                        Listings
+                                    </NavLink>
+                                </div>
+
+                                <div className="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
+                                    <NavLink
                                         href={route('pay')}
                                         active={route().current('pay')}
                                     >
@@ -448,6 +457,12 @@ export default function AppLayout({
                                     active={route().current('dashboard')}
                                 >
                                     Dashboard
+                                </ResponsiveNavLink>
+                                <ResponsiveNavLink
+                                    href={route('listings')}
+                                    active={route().current('listings')}
+                                >
+                                    Listings
                                 </ResponsiveNavLink>
                                 <ResponsiveNavLink
                                     href={route('pay')}
