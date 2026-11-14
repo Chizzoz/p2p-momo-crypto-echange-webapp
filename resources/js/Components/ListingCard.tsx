@@ -8,6 +8,7 @@ import {
   getBrowserProvider,
   getEmpiyaP2P,
 } from '@/lib/contracts';
+import { formatUsdtAmount } from '@/lib/units';
 
 declare let window: any;
 
@@ -206,7 +207,8 @@ export default function ListingCard(props: Props) {
 
       <div className="flex flex-1 flex-col px-5 py-5">
         <p className="font-display text-2xl font-bold text-ink">
-          {transactionObj.symbol} {transactionObj.amount}
+          {transactionObj.symbol}{' '}
+          {formatUsdtAmount(transactionObj.amount)}
         </p>
         <dl className="mt-4 space-y-2 text-sm">
           <div className="flex justify-between gap-3">
@@ -218,7 +220,13 @@ export default function ListingCard(props: Props) {
           <div className="flex justify-between gap-3">
             <dt className="text-ink-muted">Total</dt>
             <dd className="font-semibold text-ink">
-              ZMW {Number.isFinite(total) ? total.toLocaleString() : '—'}
+              ZMW{' '}
+              {Number.isFinite(total)
+                ? total.toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2,
+                  })
+                : '—'}
             </dd>
           </div>
         </dl>

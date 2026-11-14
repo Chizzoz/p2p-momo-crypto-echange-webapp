@@ -9,7 +9,7 @@ import {
   getBrowserProvider,
   getUsdtBalance,
 } from '@/lib/contracts';
-import { formatUsdt } from '@/lib/units';
+import { formatUsdt, formatUsdtAmount } from '@/lib/units';
 
 declare let window: any;
 
@@ -143,7 +143,7 @@ export default function Dashboard() {
                   Open listed USDT
                 </p>
                 <p className="mt-2 font-display text-3xl font-bold text-ink">
-                  {stats.open_listed_usdt}
+                  {formatUsdtAmount(stats.open_listed_usdt)}
                 </p>
                 <p className="mt-2 text-xs text-ink-muted">
                   {stats.open_count} open listing
@@ -244,12 +244,16 @@ export default function Dashboard() {
                                 : '—'}
                             </td>
                             <td className="px-6 py-4 font-medium text-ink">
-                              {row.amount} {row.symbol || 'USDT'}
+                              {formatUsdtAmount(row.amount)}{' '}
+                              {row.symbol || 'USDT'}
                             </td>
                             <td className="px-6 py-4 text-ink">
                               ZMW{' '}
                               {Number.isFinite(total)
-                                ? total.toLocaleString()
+                                ? total.toLocaleString(undefined, {
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 2,
+                                  })
                                 : '—'}
                             </td>
                             <td className="px-6 py-4 text-ink">

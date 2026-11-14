@@ -35,13 +35,18 @@ In **Build** / **Args** (must be set at image build time):
 ```env
 VITE_CHAIN_ID=11155111
 VITE_ALCHEMY_API_KEY=your_alchemy_key
-VITE_EMPIYA_P2P_ADDRESS=0x7302919144a2B620a22F862d0a557c995d0b435D
-VITE_EMPIYA_PAYMENTS_ADDRESS=0xaD9e29524952bf9EEE548EB56839C0b443fAEf72
-VITE_USDT_ADDRESS=0x7169D38820dfd117C3FA1f22a697dBA58d90BA06
+VITE_EMPIYA_P2P_ADDRESS=0x76E69285D4dED0E5959F219014D4a64fc612d9Be
+VITE_EMPIYA_PAYMENTS_ADDRESS=0x10C38D531d6C93E16ABc2f34b091a8E07B77C0de
+VITE_USDT_ADDRESS=0x2A51b5d05bbbDAB5A5746ed35C1A7708f7ADe6eD
 VITE_USDT_DECIMALS=6
 ```
 
-Addresses above match the current Sepolia deploy (`SEPOLIA_CONTRACT_ADDRESS` / `SEPOLIA_PAYMENTS_ADDRESS`). Update them after redeploying contracts. Never put private keys in `VITE_*`.
+These must be Docker **build arguments** (Dokploy Build → Args), not only runtime Environment.
+Putting them only in the Environment tab does **not** bake them into the Vite JS bundle — you will see
+`Set VITE_EMPIYA_P2P_ADDRESS in the webapp .env (Vite)`.
+
+Addresses above match the current Sepolia deploy (Mock USDT + redeployed EmpiyaP2P / EmpiyaPayments).
+Update them after redeploying contracts. Never put private keys in `VITE_*`. After changing any `VITE_*`, **rebuild** the image.
 
 ### 3. Runtime environment
 
@@ -143,7 +148,7 @@ docker build \
   --build-arg VITE_ALCHEMY_API_KEY=… \
   --build-arg VITE_EMPIYA_P2P_ADDRESS=… \
   --build-arg VITE_EMPIYA_PAYMENTS_ADDRESS=… \
-  --build-arg VITE_USDT_ADDRESS=0x7169D38820dfd117C3FA1f22a697dBA58d90BA06 \
+  --build-arg VITE_USDT_ADDRESS=0x2A51b5d05bbbDAB5A5746ed35C1A7708f7ADe6eD \
   -t empiya-p2p-webapp .
 
 docker run --rm -p 8080:80 --env-file .env.production empiya-p2p-webapp
