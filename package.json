@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "e2e:walkthrough": "playwright test e2e/01-list-usdt.spec.ts e2e/02-buy-usdt.spec.ts e2e/03-pay-redeem.spec.ts && node e2e/copy-videos.mjs && node e2e/combine-walkthrough.mjs",
+    "e2e:walkthrough": "playwright test e2e/01-sell-usdt.spec.ts e2e/02-sell-momo.spec.ts e2e/03-pay-with-usdt.spec.ts && node e2e/copy-videos.mjs && node e2e/combine-walkthrough.mjs",
     "e2e:combine": "node e2e/combine-walkthrough.mjs",
     "e2e:report": "playwright show-report e2e-report"
   },
@@ -21,6 +21,7 @@
     "axios": "^1.7.9",
     "laravel-vite-plugin": "^1.1.1",
     "lodash": "^4.17.21",
+    "pdf-lib": "^1.17.1",
     "postcss": "^8.4.49",
     "prettier": "^3.4.2",
     "tailwindcss": "^3.4.16",

@@ -28,8 +28,17 @@ class CheckMomoTransferStatus implements ShouldQueue
         $settlement->syncTransferStatus($transfer);
 
         $fresh = $transfer->fresh();
-        if ($fresh && ! $fresh->isTerminal()) {
-            self::dispatch($this->momoTransferId)->delay(now()->addSeconds(20));
+        if (! $fresh || $fresh->isTerminal()) {
+            return;
         }
+
+        // With QUEUE_CONNECTION=sync, delay() is ignored and re-dispatch runs
+        // inline forever (hanging the HTTP request that started the MoMo tx).
+        // Rely on the every-minute scheduler instead.
+        if (config('queue.default') === 'sync') {
+            return;
+        }
+
+        self::dispatch($this->momoTransferId)->delay(now()->addSeconds(20));
     }
 }

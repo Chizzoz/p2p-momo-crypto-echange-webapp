@@ -18,5 +18,6 @@ class TransactionToken extends Model
         'transaction_id',
         'token_id',
         'price',
+        'currency',
     ];
 }

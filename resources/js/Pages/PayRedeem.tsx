@@ -18,11 +18,14 @@ import {
   getBrowserSigner,
   getEmpiyaPayments,
 } from '@/lib/contracts';
+import { fractionalDigitCount } from '@/lib/fiatDecimals';
 import { detectMsisdn, formatMsisdnDisplay } from '@/lib/msisdn';
 import { parseUsdt } from '@/lib/units';
 import { CountryOption, PaymentMethodOption } from '@/types';
 
 type FormState = 'idle' | 'reviewing' | 'submitting' | 'pending' | 'error';
+
+const FIAT_MAX_DECIMALS = 2;
 
 export default function PayRedeem() {
   const page = useTypedPage();
@@ -50,6 +53,12 @@ export default function PayRedeem() {
     [mobile, countryIso3],
   );
 
+  // Recipient country owns both the currency and the network list.
+  const currency = (
+    selectedCountry?.currency_code ||
+    ''
+  ).toUpperCase();
+
   const networks = useMemo(() => {
     if (!selectedCountry) {
       return [] as PaymentMethodOption[];
@@ -67,13 +76,16 @@ export default function PayRedeem() {
     networks[0] ||
     null;
 
-  const currency = 'ZMW';
-
   function goToReview(event: FormEvent) {
     event.preventDefault();
     if (!user) {
       setFormState('error');
       setStatusMessage('Log in to pay and redeem.');
+      return;
+    }
+    if (!selectedCountry || !currency) {
+      setFormState('error');
+      setStatusMessage('Choose a recipient country with a supported currency.');
       return;
     }
     if (!amount || Number(amount) <= 0) {
@@ -83,12 +95,19 @@ export default function PayRedeem() {
     }
     if (!fiatAmount || Number(fiatAmount) <= 0) {
       setFormState('error');
-      setStatusMessage('Enter the MoMo fiat amount to pay out.');
+      setStatusMessage(`Enter the MoMo fiat amount in ${currency}.`);
       return;
     }
-    if (!mobile || !selectedCountry || !selectedMethod) {
+    if (fractionalDigitCount(fiatAmount) > FIAT_MAX_DECIMALS) {
       setFormState('error');
-      setStatusMessage('Add recipient mobile, country, and network.');
+      setStatusMessage(
+        `Fiat amount allows at most ${FIAT_MAX_DECIMALS} decimal places.`,
+      );
+      return;
+    }
+    if (!mobile || !selectedMethod) {
+      setFormState('error');
+      setStatusMessage('Add recipient mobile and choose a network for that country.');
       return;
     }
     setFormState('reviewing');
@@ -145,7 +164,13 @@ export default function PayRedeem() {
       }
     } catch (error: any) {
       setFormState('error');
-      setStatusMessage(formatTxError(error) || 'Pay & redeem failed.');
+      const apiMessage =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        null;
+      setStatusMessage(
+        apiMessage || formatTxError(error) || 'Pay & redeem failed.',
+      );
     }
   }
 
@@ -172,13 +197,13 @@ export default function PayRedeem() {
   }
 
   return (
-    <MarketingLayout title="Pay USDT & redeem MoMo">
+    <MarketingLayout title="Pay with USDT · redeem as MoMo">
       <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
         <p className="font-display text-sm font-semibold uppercase tracking-[0.16em] text-emerald">
-          Pay &amp; redeem
+          Pay with USDT
         </p>
         <h1 className="mt-3 font-display text-4xl font-bold tracking-tight text-ink">
-          Pay with USDT. Redeem as mobile money.
+          Pay with USDT · redeem as MoMo
         </h1>
         <p className="mt-3 text-ink-muted">
           Lock USDT in EmpiyaPayments, then PawaPay pays the recipient via MoMo.
@@ -189,34 +214,6 @@ export default function PayRedeem() {
           onSubmit={goToReview}
           className="mt-10 space-y-6 rounded-2xl border border-[var(--line)] bg-white p-6 shadow-soft sm:p-8"
         >
-          <div>
-            <InputLabel htmlFor="amount" value="USDT amount" />
-            <TextInput
-              id="amount"
-              type="number"
-              min="0"
-              step="0.01"
-              className="mt-1 block w-full"
-              value={amount}
-              onChange={e => setAmount(e.currentTarget.value)}
-              required
-            />
-          </div>
-
-          <div>
-            <InputLabel htmlFor="fiat_amount" value="MoMo fiat amount (ZMW)" />
-            <TextInput
-              id="fiat_amount"
-              type="number"
-              min="0"
-              step="0.01"
-              className="mt-1 block w-full"
-              value={fiatAmount}
-              onChange={e => setFiatAmount(e.currentTarget.value)}
-              required
-            />
-          </div>
-
           <div>
             <InputLabel htmlFor="country" value="Recipient country" />
             <select
@@ -231,35 +228,23 @@ export default function PayRedeem() {
               {countries.map(country => (
                 <option key={country.id} value={country.iso3}>
                   {country.name}
+                  {country.currency_code
+                    ? ` · ${country.currency_code}`
+                    : ''}
                 </option>
               ))}
             </select>
             {selectedCountry && (
-              <div className="mt-2 flex items-center gap-2 text-sm text-ink-muted">
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-ink-muted">
                 <CountryFlag
                   iso2={selectedCountry.iso2}
                   name={selectedCountry.name}
                 />
-                {selectedCountry.name}
+                <span>
+                  {selectedCountry.name}
+                  {currency ? ` · payout currency ${currency}` : ''}
+                </span>
               </div>
-            )}
-          </div>
-
-          <div>
-            <InputLabel htmlFor="mobile" value="Recipient mobile number" />
-            <TextInput
-              id="mobile"
-              type="tel"
-              className="mt-1 block w-full"
-              value={mobile}
-              onChange={e => setMobile(e.currentTarget.value)}
-              placeholder="+260…"
-              required
-            />
-            {detection?.e164 && (
-              <p className="mt-1 text-xs text-ink-muted">
-                Detected {formatMsisdnDisplay(detection.e164)}
-              </p>
             )}
           </div>
 
@@ -292,6 +277,64 @@ export default function PayRedeem() {
                 className="mt-2"
               />
             )}
+          </div>
+
+          <div>
+            <InputLabel htmlFor="mobile" value="Recipient mobile number" />
+            <TextInput
+              id="mobile"
+              type="tel"
+              className="mt-1 block w-full"
+              value={mobile}
+              onChange={e => setMobile(e.currentTarget.value)}
+              placeholder="+260…"
+              required
+            />
+            {detection?.e164 && (
+              <p className="mt-1 text-xs text-ink-muted">
+                Detected {formatMsisdnDisplay(detection.e164)}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <InputLabel htmlFor="amount" value="USDT amount" />
+            <TextInput
+              id="amount"
+              type="number"
+              min="0"
+              step="0.01"
+              className="mt-1 block w-full"
+              value={amount}
+              onChange={e => setAmount(e.currentTarget.value)}
+              required
+            />
+          </div>
+
+          <div>
+            <InputLabel
+              htmlFor="fiat_amount"
+              value={
+                currency
+                  ? `MoMo fiat amount (${currency})`
+                  : 'MoMo fiat amount'
+              }
+            />
+            <TextInput
+              id="fiat_amount"
+              type="number"
+              min="0"
+              step="0.01"
+              className="mt-1 block w-full"
+              value={fiatAmount}
+              onChange={e => setFiatAmount(e.currentTarget.value)}
+              required
+              disabled={!currency}
+            />
+            <p className="mt-1 text-xs text-ink-muted">
+              Up to {FIAT_MAX_DECIMALS} decimal places. Currency follows the
+              recipient country.
+            </p>
           </div>
 
           {formState !== 'reviewing' &&

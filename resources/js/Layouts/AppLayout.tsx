@@ -15,6 +15,7 @@ import MetamaskButton from '@/Components/MetamaskButton';
 import axios from 'axios';
 import GenericModal from '@/Components/GenericModal';
 import { BsCashCoin } from "react-icons/bs";
+import CreateMoMoOfferModal from '@/Components/CreateMoMoOfferModal';
 import CreateTransactionModal from '@/Components/CreateTransactionModal';
 import {
     ensureSepoliaChain,
@@ -56,6 +57,7 @@ export default function AppLayout({
     const [dialogMessage, setDialogMessage] = useState<string>("");
     const [walletAddress, setWalletAddress] = useState<string>("");
     const [createTransactionModalOpen, setCreateTransactionModalOpen] = useState<boolean>(false);
+    const [createMoMoOfferModalOpen, setCreateMoMoOfferModalOpen] = useState<boolean>(false);
     const [user, setUser] = useState(page.props.user);
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
@@ -181,7 +183,16 @@ export default function AppLayout({
                                         href={route('listings')}
                                         active={route().current('listings')}
                                     >
-                                        Listings
+                                        USDT offers
+                                    </NavLink>
+                                </div>
+
+                                <div className="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
+                                    <NavLink
+                                        href={route('buy_orders.index')}
+                                        active={route().current('buy_orders.index')}
+                                    >
+                                        MoMo offers
                                     </NavLink>
                                 </div>
 
@@ -190,7 +201,7 @@ export default function AppLayout({
                                         href={route('pay')}
                                         active={route().current('pay')}
                                     >
-                                        Pay &amp; redeem
+                                        Pay with USDT
                                     </NavLink>
                                 </div>
                             </div>
@@ -215,6 +226,13 @@ export default function AppLayout({
                                             </>
                                         </div>
 
+                                        <button
+                                            type="button"
+                                            className="ml-2 inline-flex items-center rounded-lg border border-ink/15 bg-white px-4 py-2.5 text-center text-sm font-semibold text-ink transition hover:border-emerald"
+                                            onClick={() => setCreateMoMoOfferModalOpen(true)}
+                                        >
+                                            List MoMo
+                                        </button>
                                         <button
                                             type="button"
                                             className="ml-2 inline-flex items-center rounded-lg bg-emerald px-5 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-emerald-deep"
@@ -321,43 +339,28 @@ export default function AppLayout({
                                             <Dropdown
                                                 align="right"
                                                 width="48"
-                                                renderTrigger={() =>
-                                                    page.props.jetstream.managesProfilePhotos ? (
-                                                        <button className="flex text-sm border-2 border-transparent rounded-full focus:outline-none focus:border-gray-300 transition">
-                                                            <img
-                                                                className="h-8 w-8 rounded-full object-cover"
-                                                                src={user.profile_photo_url}
-                                                                alt={user.name}
-                                                            />
-                                                        </button>
-                                                    ) : (
-                                                        <span className="inline-flex rounded-md">
-                                                            <button
-                                                                type="button"
-                                                                className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition"
-                                                            >
-                                                                {user.name}
-
-                                                                <svg
-                                                                    className="ml-2 -mr-0.5 h-4 w-4"
-                                                                    xmlns="http://www.w3.org/2000/svg"
-                                                                    viewBox="0 0 20 20"
-                                                                    fill="currentColor"
-                                                                >
-                                                                    <path
-                                                                        fillRule="evenodd"
-                                                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                                                        clipRule="evenodd"
-                                                                    />
-                                                                </svg>
-                                                            </button>
-                                                        </span>
-                                                    )
-                                                }
+                                                renderTrigger={() => (
+                                                    <button
+                                                        type="button"
+                                                        className="flex rounded-full border border-transparent p-0.5 transition hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald/30"
+                                                        aria-label="Account menu"
+                                                    >
+                                                        <img
+                                                            className="h-8 w-8 rounded-full object-cover"
+                                                            src={user.profile_photo_url}
+                                                            alt=""
+                                                        />
+                                                    </button>
+                                                )}
                                             >
                                                 {/* <!-- Account Management --> */}
-                                                <div className="block px-4 py-2 text-xs text-gray-400">
-                                                    Manage Account
+                                                <div className="border-b border-gray-100 px-4 py-3">
+                                                    <p className="truncate text-sm font-semibold text-gray-800">
+                                                        {user.name}
+                                                    </p>
+                                                    <p className="truncate text-xs text-gray-400">
+                                                        {user.email}
+                                                    </p>
                                                 </div>
 
                                                 <DropdownLink href={route('profile.show')}>
@@ -462,14 +465,42 @@ export default function AppLayout({
                                     href={route('listings')}
                                     active={route().current('listings')}
                                 >
-                                    Listings
+                                    USDT offers
+                                </ResponsiveNavLink>
+                                <ResponsiveNavLink
+                                    href={route('buy_orders.index')}
+                                    active={route().current('buy_orders.index')}
+                                >
+                                    MoMo offers
                                 </ResponsiveNavLink>
                                 <ResponsiveNavLink
                                     href={route('pay')}
                                     active={route().current('pay')}
                                 >
-                                    Pay &amp; redeem
+                                    Pay with USDT
                                 </ResponsiveNavLink>
+                                <div className="px-4 pt-2 space-y-2">
+                                    <button
+                                        type="button"
+                                        className="w-full rounded-lg border border-ink/15 px-4 py-2.5 text-left text-sm font-semibold text-ink"
+                                        onClick={() => {
+                                            setShowingNavigationDropdown(false);
+                                            setCreateMoMoOfferModalOpen(true);
+                                        }}
+                                    >
+                                        List MoMo
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="w-full rounded-lg bg-emerald px-4 py-2.5 text-left text-sm font-semibold text-white"
+                                        onClick={() => {
+                                            setShowingNavigationDropdown(false);
+                                            setCreateTransactionModalOpen(true);
+                                        }}
+                                    >
+                                        List USDT
+                                    </button>
+                                </div>
                             </div>
 
                             {/* <!-- Responsive Settings Options --> */}
@@ -608,6 +639,7 @@ export default function AppLayout({
 
             <GenericModal dialogOpen={dialogOpen} setDialogOpen={setDialogOpen} dialogTitle={dialogTitle} dialogMessage={dialogMessage} />
             <CreateTransactionModal modalOpen={createTransactionModalOpen} setModalOpen={setCreateTransactionModalOpen} />
+            <CreateMoMoOfferModal modalOpen={createMoMoOfferModalOpen} setModalOpen={setCreateMoMoOfferModalOpen} />
         </div>
     );
 }

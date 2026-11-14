@@ -1,8 +1,11 @@
-import { Head, Link } from '@inertiajs/react';
-import React, { createContext, ReactNode, useContext, useState } from 'react';
+import { Head, Link, router } from '@inertiajs/react';
+import React, { createContext, FormEvent, ReactNode, useContext, useState } from 'react';
 import ApplicationMark from '@/Components/ApplicationMark';
+import CreateMoMoOfferModal from '@/Components/CreateMoMoOfferModal';
 import CreateTransactionModal from '@/Components/CreateTransactionModal';
 import DownloadMetamaskModal from '@/Components/DownloadMetamaskModal';
+import Dropdown from '@/Components/Dropdown';
+import DropdownLink from '@/Components/DropdownLink';
 import GenericModal from '@/Components/GenericModal';
 import MetamaskButton from '@/Components/MetamaskButton';
 import useRoute from '@/Hooks/useRoute';
@@ -11,6 +14,7 @@ import useWalletAuth from '@/Hooks/useWalletAuth';
 
 type MarketingActions = {
   openSellFlow: () => void;
+  openMoMoFlow: () => void;
   loginWithMetamask: () => Promise<void>;
   isAuthenticated: boolean;
 };
@@ -40,10 +44,13 @@ export default function MarketingLayout({ title, children }: Props) {
     setMetamaskModalOpen,
     createTransactionModalOpen,
     setCreateTransactionModalOpen,
+    createMoMoOfferModalOpen,
+    setCreateMoMoOfferModalOpen,
     dialog,
     setDialog,
     loginWithMetamask,
     openSellFlow,
+    openMoMoFlow,
   } = useWalletAuth();
 
   const year = new Date().getFullYear();
@@ -53,7 +60,13 @@ export default function MarketingLayout({ title, children }: Props) {
     isAuthenticated,
     loginWithMetamask,
     openSellFlow: () => openSellFlow(isAuthenticated),
+    openMoMoFlow: () => openMoMoFlow(isAuthenticated),
   };
+
+  function logout(e: FormEvent) {
+    e.preventDefault();
+    router.post(route('logout'));
+  }
 
   return (
     <MarketingActionsContext.Provider value={actions}>
@@ -69,7 +82,7 @@ export default function MarketingLayout({ title, children }: Props) {
               </span>
             </Link>
 
-            <nav className="hidden items-center gap-6 text-sm font-medium text-ink-muted md:flex">
+            <nav className="hidden items-center gap-4 text-sm font-medium text-ink-muted md:flex lg:gap-5">
               <Link href={`${route('home')}#use-cases`} className="transition hover:text-ink">
                 Use cases
               </Link>
@@ -83,29 +96,77 @@ export default function MarketingLayout({ title, children }: Props) {
                 href={route('listings')}
                 className={`transition hover:text-ink ${route().current('listings') ? 'text-ink' : ''}`}
               >
-                Listings
+                USDT offers
+              </Link>
+              <Link
+                href={route('buy_orders.index')}
+                className={`transition hover:text-ink ${route().current('buy_orders.index') ? 'text-ink' : ''}`}
+              >
+                MoMo offers
               </Link>
               <Link href={route('pay')} className="transition hover:text-ink">
-                Pay &amp; redeem
+                Pay with USDT
               </Link>
             </nav>
 
             <div className="hidden items-center gap-2 md:flex">
               {user ? (
                 <>
-                  <Link
-                    href={route('dashboard')}
-                    className="rounded-lg px-3 py-2 text-sm font-semibold text-ink-muted transition hover:text-ink"
+                  <button
+                    type="button"
+                    onClick={actions.openMoMoFlow}
+                    className="rounded-lg border border-ink/15 bg-white px-3 py-2 text-sm font-semibold text-ink transition hover:border-emerald"
                   >
-                    Dashboard
-                  </Link>
+                    List MoMo
+                  </button>
                   <button
                     type="button"
                     onClick={actions.openSellFlow}
-                    className="rounded-lg bg-emerald px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-deep"
+                    className="rounded-lg bg-emerald px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-deep"
                   >
                     List USDT
                   </button>
+                  <Dropdown
+                    align="right"
+                    width="48"
+                    renderTrigger={() => (
+                      <button
+                        type="button"
+                        className="flex rounded-full border border-[var(--line)] p-0.5 transition hover:border-emerald focus:outline-none focus:ring-2 focus:ring-emerald/30"
+                        aria-label="Account menu"
+                      >
+                        <img
+                          className="h-9 w-9 rounded-full object-cover"
+                          src={user.profile_photo_url}
+                          alt=""
+                        />
+                      </button>
+                    )}
+                  >
+                    <div className="border-b border-[var(--line)] px-4 py-3">
+                      <p className="truncate text-sm font-semibold text-ink">
+                        {user.name}
+                      </p>
+                      <p className="truncate text-xs text-ink-muted">
+                        {user.email}
+                      </p>
+                    </div>
+                    <DropdownLink href={route('dashboard')}>
+                      Dashboard
+                    </DropdownLink>
+                    <DropdownLink href={route('profile.show')}>
+                      Profile
+                    </DropdownLink>
+                    {page.props.jetstream.hasApiFeatures ? (
+                      <DropdownLink href={route('api-tokens.index')}>
+                        API Tokens
+                      </DropdownLink>
+                    ) : null}
+                    <div className="border-t border-[var(--line)]" />
+                    <form onSubmit={logout}>
+                      <DropdownLink as="button">Log Out</DropdownLink>
+                    </form>
+                  </Dropdown>
                 </>
               ) : (
                 <>
@@ -148,11 +209,33 @@ export default function MarketingLayout({ title, children }: Props) {
                 <Link href={`${route('home')}#use-cases`} onClick={() => setMobileOpen(false)}>Use cases</Link>
                 <Link href={`${route('home')}#how-it-works`} onClick={() => setMobileOpen(false)}>How it works</Link>
                 <Link href={`${route('home')}#markets`} onClick={() => setMobileOpen(false)}>Markets</Link>
-                <Link href={route('listings')} onClick={() => setMobileOpen(false)}>Listings</Link>
-                <Link href={route('pay')} onClick={() => setMobileOpen(false)}>Pay &amp; redeem</Link>
+                <Link href={route('listings')} onClick={() => setMobileOpen(false)}>
+                  USDT offers
+                </Link>
+                <Link href={route('buy_orders.index')} onClick={() => setMobileOpen(false)}>
+                  MoMo offers
+                </Link>
+                <Link href={route('pay')} onClick={() => setMobileOpen(false)}>
+                  Pay with USDT
+                </Link>
                 {user ? (
                   <>
-                    <Link href={route('dashboard')}>Dashboard</Link>
+                    <Link href={route('dashboard')} onClick={() => setMobileOpen(false)}>
+                      Dashboard
+                    </Link>
+                    <Link href={route('profile.show')} onClick={() => setMobileOpen(false)}>
+                      Profile
+                    </Link>
+                    <button
+                      type="button"
+                      className="rounded-lg border border-[var(--line)] px-4 py-2.5 text-left font-semibold text-ink"
+                      onClick={() => {
+                        setMobileOpen(false);
+                        actions.openMoMoFlow();
+                      }}
+                    >
+                      List MoMo
+                    </button>
                     <button
                       type="button"
                       className="rounded-lg bg-emerald px-4 py-2.5 text-left font-semibold text-white"
@@ -162,6 +245,16 @@ export default function MarketingLayout({ title, children }: Props) {
                       }}
                     >
                       List USDT
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-lg border border-[var(--line)] px-4 py-2.5 text-left"
+                      onClick={() => {
+                        setMobileOpen(false);
+                        router.post(route('logout'));
+                      }}
+                    >
+                      Log Out
                     </button>
                   </>
                 ) : (
@@ -197,8 +290,9 @@ export default function MarketingLayout({ title, children }: Props) {
               . All rights reserved.
             </p>
             <div className="flex gap-4">
-              <Link href={route('listings')} className="hover:text-ink">Listings</Link>
-              <Link href={route('pay')} className="hover:text-ink">Pay &amp; redeem</Link>
+              <Link href={route('listings')} className="hover:text-ink">USDT offers</Link>
+              <Link href={route('buy_orders.index')} className="hover:text-ink">MoMo offers</Link>
+              <Link href={route('pay')} className="hover:text-ink">Pay with USDT</Link>
               <Link href={`${route('home')}#markets`} className="hover:text-ink">Markets</Link>
             </div>
           </div>
@@ -211,6 +305,10 @@ export default function MarketingLayout({ title, children }: Props) {
         <CreateTransactionModal
           modalOpen={createTransactionModalOpen}
           setModalOpen={setCreateTransactionModalOpen}
+        />
+        <CreateMoMoOfferModal
+          modalOpen={createMoMoOfferModalOpen}
+          setModalOpen={setCreateMoMoOfferModalOpen}
         />
         <GenericModal
           dialogOpen={dialog.open}

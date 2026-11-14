@@ -15,7 +15,11 @@ class MomoTransfer extends Model
 
     public const PURPOSE_P2P_BUY = 'p2p_buy';
 
+    public const PURPOSE_P2P_BUY_ORDER = 'p2p_buy_order';
+
     public const PURPOSE_P2P_SELLER_PAYOUT = 'p2p_seller_payout';
+
+    public const PURPOSE_WALLET_WITHDRAW = 'wallet_withdraw';
 
     public const PURPOSE_PAY_REDEEM = 'pay_redeem';
 
@@ -50,7 +54,9 @@ class MomoTransfer extends Model
     ];
 
     protected $casts = [
-        'amount' => 'decimal:8',
+        // Keep ≤2 places so re-reads never reintroduce the PawaPay INVALID_AMOUNT
+        // "supports up to 2 decimal places" failure from decimal:8 padding.
+        'amount' => 'decimal:2',
         'metadata' => 'array',
     ];
 

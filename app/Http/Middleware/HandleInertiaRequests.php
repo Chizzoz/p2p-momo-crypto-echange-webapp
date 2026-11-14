@@ -50,9 +50,20 @@ class HandleInertiaRequests extends Middleware
             // Markets with at least one seeded MNO (hides LBR/MLI/SSD until providers exist).
             // Shared with guests so marketing can list real coverage.
             'countries' => fn () => Country::query()
+                ->with('currency:id,currency,symbol,currency_slug')
                 ->whereHas('paymentMethods')
                 ->orderBy('name')
-                ->get(['id', 'name', 'iso2', 'iso3']),
+                ->get(['id', 'name', 'iso2', 'iso3', 'currency_id'])
+                ->map(fn (Country $country) => [
+                    'id' => $country->id,
+                    'name' => $country->name,
+                    'iso2' => $country->iso2,
+                    'iso3' => $country->iso3,
+                    'currency_id' => $country->currency_id,
+                    'currency_code' => strtoupper((string) ($country->currency?->currency_slug ?? '')),
+                    'currency_symbol' => $country->currency?->symbol,
+                    'currency_name' => $country->currency?->currency,
+                ]),
             'payment_methods' => fn () => PaymentMethod::query()
                 ->whereNotNull('country_id')
                 ->orderBy('method')

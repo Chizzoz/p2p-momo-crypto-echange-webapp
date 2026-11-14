@@ -1,16 +1,16 @@
 # Playwright video walkthroughs
 
-Records three product flows against the local DDEV app:
+Records the three product services against the local DDEV app:
 
-1. **List USDT** — seller listing modal  
-2. **Buy / Request USDT** — marketplace buy request  
-3. **Pay & redeem** — pay form → review  
+1. **Sell USDT** — List USDT modal (escrow deposit path)  
+2. **Sell MoMo** — List MoMo modal on `/momo-offers`  
+3. **Pay with USDT** — `/pay` form → review  
 
 Videos land in `e2e-results/**/*.webm`. After a successful run they are also copied to:
 
-- `e2e-videos/01-list-usdt.webm`
-- `e2e-videos/02-buy-usdt.webm`
-- `e2e-videos/03-pay-redeem.webm`
+- `e2e-videos/01-sell-usdt.webm`
+- `e2e-videos/02-sell-momo.webm`
+- `e2e-videos/03-pay-with-usdt.webm`
 - `e2e-videos/empiya-walkthrough.mp4` — all three with chapter markers
 
 HTML report: `e2e-report/` (`npm run e2e:report`).
@@ -28,8 +28,8 @@ ddev exec php scripts/setup-walkthrough-users.php
 
 Demo logins (password `password`):
 
-- `seller@empiya.test`
-- `buyer@empiya.test`
+- `seller@empiya.test` — Sell USDT / Pay with USDT
+- `buyer@empiya.test` — Sell MoMo (MoMo-bound profile)
 
 ## Record
 
@@ -48,5 +48,5 @@ npx playwright show-report e2e-report
 ## Notes
 
 - A wallet mock supplies `eth_requestAccounts` / Sepolia `chainId` so UI can proceed without MetaMask.
-- On-chain `deposit` / `pay` / `reserve` are **not** fully executed in these videos; captions call out the live MetaMask steps.
+- On-chain `deposit` / `pay` / `depositAndReserve` are **not** fully executed in these videos; captions call out the live MetaMask steps.
 - MoMo MSISDNs use PawaPay Zambia sandbox COMPLETED numbers.

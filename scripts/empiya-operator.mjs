@@ -80,6 +80,18 @@ async function refundSeller(payload) {
   return { hash: receipt.transactionHash, status: receipt.status };
 }
 
+async function expireReservation(payload) {
+  const wallet = getWallet();
+  const p2p = getP2P(wallet);
+  const tx = await p2p.expireReservation(
+    payload.depositor,
+    payload.transactionKey,
+    payload.transactionNumber,
+  );
+  const receipt = await tx.wait();
+  return { hash: receipt.transactionHash, status: receipt.status };
+}
+
 async function settlePayment(payload) {
   const wallet = getWallet();
   const payments = getPayments(wallet);
@@ -99,6 +111,7 @@ async function refundPayment(payload) {
 const actions = {
   releaseToBuyer,
   refundSeller,
+  expireReservation,
   settlePayment,
   refundPayment,
 };

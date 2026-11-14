@@ -12,7 +12,6 @@ use App\Models\PaymentMethod;
 use App\Models\Transaction;
 use App\Models\TransactionToken;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 $mtn = PaymentMethod::query()
@@ -66,36 +65,18 @@ foreach ($specs as $role => $data) {
     echo strtoupper($role)." id={$user->id} email={$user->email} eth={$user->eth_address}\n";
 }
 
+// Remove legacy DB-only demo listing (invalid bytes32 transaction_number — cannot reserve on-chain).
 $seller = User::query()->where('email', 'seller@empiya.test')->firstOrFail();
-$tokenId = (int) (DB::table('tokens')->orderBy('id')->value('id') ?: 1);
+$legacy = Transaction::query()
+    ->where('user_id', $seller->id)
+    ->where('transaction_number', 'like', '0xwalkthrough%')
+    ->get();
 
-$listing = Transaction::query()->firstOrCreate(
-    [
-        'user_id' => $seller->id,
-        'transaction_number' => '0x'.str_pad('walkthrough1', 64, '0'),
-    ],
-    [
-        'transaction_key' => 0,
-        'amount' => 25,
-        'status' => 0,
-        'recipient' => '0x0000000000000000000000000000000000000000',
-    ]
-);
+foreach ($legacy as $row) {
+    TransactionToken::query()->where('transaction_id', $row->id)->delete();
+    $row->delete();
+    echo "removed legacy walkthrough listing id={$row->id}\n";
+}
 
-// Ensure it stays open for the buy walkthrough.
-$listing->update([
-    'status' => 0,
-    'reserved_buyer' => null,
-    'reservation_id' => null,
-]);
-
-TransactionToken::query()->updateOrCreate(
-    ['transaction_id' => $listing->id],
-    [
-        'token_id' => $tokenId,
-        'price' => 27.5,
-    ]
-);
-
-echo "demo listing id={$listing->id} status={$listing->status} amount={$listing->amount}\n";
+echo "Create real listings via the app (deposit USDT on-chain) for buy walkthroughs.\n";
 echo "password for both users: {$password}\n";
