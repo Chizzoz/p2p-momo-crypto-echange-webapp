@@ -1,3 +1,98 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --font-heading: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --ink: #0b1f1a;
+  --ink-muted: #3d524b;
+  --emerald: #0d7a5f;
+  --emerald-deep: #075a46;
+  --mint: #d8f3e7;
+  --paper: #f4faf7;
+  --sand: #e8f0ec;
+  --surface: #ffffff;
+  --line: rgba(11, 31, 26, 0.1);
+  --accent: #c8f542;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-paper text-ink antialiased;
+    font-family: var(--font-body);
+    background-image:
+      radial-gradient(ellipse 80% 50% at 10% -10%, rgba(13, 122, 95, 0.12), transparent 55%),
+      radial-gradient(ellipse 60% 40% at 100% 0%, rgba(200, 245, 66, 0.12), transparent 50%);
+    background-attachment: fixed;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-heading);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hero-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(1.5%, -1.5%, 0) scale(1.03);
+  }
+}
+
+.hero-rise {
+  animation: hero-rise 0.8s ease-out both;
+}
+
+.hero-rise-delay {
+  animation: hero-rise 0.9s ease-out 0.12s both;
+}
+
+.hero-rise-delay-2 {
+  animation: hero-rise 0.9s ease-out 0.24s both;
+}
+
+.hero-atmosphere {
+  animation: hero-drift 18s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-rise,
+  .hero-rise-delay,
+  .hero-rise-delay-2,
+  .hero-atmosphere {
+    animation: none;
+  }
+}
