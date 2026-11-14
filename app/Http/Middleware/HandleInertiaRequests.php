@@ -47,19 +47,16 @@ class HandleInertiaRequests extends Middleware
             'tokens' => fn () => $request->user()
                 ? Token::query()->orderBy('symbol')->get(['id', 'token', 'symbol', 'token_slug'])
                 : [],
-            // Only markets with at least one seeded MNO (hides LBR/MLI/SSD until providers exist).
-            'countries' => fn () => $request->user()
-                ? Country::query()
-                    ->whereHas('paymentMethods')
-                    ->orderBy('name')
-                    ->get(['id', 'name', 'iso2', 'iso3'])
-                : [],
-            'payment_methods' => fn () => $request->user()
-                ? PaymentMethod::query()
-                    ->whereNotNull('country_id')
-                    ->orderBy('method')
-                    ->get(['id', 'method', 'method_slug', 'country_id', 'pawapay_provider'])
-                : [],
+            // Markets with at least one seeded MNO (hides LBR/MLI/SSD until providers exist).
+            // Shared with guests so marketing can list real coverage.
+            'countries' => fn () => Country::query()
+                ->whereHas('paymentMethods')
+                ->orderBy('name')
+                ->get(['id', 'name', 'iso2', 'iso3']),
+            'payment_methods' => fn () => PaymentMethod::query()
+                ->whereNotNull('country_id')
+                ->orderBy('method')
+                ->get(['id', 'method', 'method_slug', 'country_id', 'pawapay_provider']),
         ];
     }
 }

@@ -35,6 +35,10 @@ Route::get('/', function () {
     return Inertia::render('Welcome', $data);
 })->name('home');
 
+Route::get('/pay', function () {
+    return Inertia::render('PayRedeem');
+})->name('pay');
+
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),

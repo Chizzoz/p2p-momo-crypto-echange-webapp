@@ -175,6 +175,15 @@ export default function AppLayout({
                                         Dashboard
                                     </NavLink>
                                 </div>
+
+                                <div className="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
+                                    <NavLink
+                                        href={route('pay')}
+                                        active={route().current('pay')}
+                                    >
+                                        Pay &amp; redeem
+                                    </NavLink>
+                                </div>
                             </div>
 
                             {
@@ -199,10 +208,10 @@ export default function AppLayout({
 
                                         <button
                                             type="button"
-                                            className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+                                            className="ml-2 inline-flex items-center rounded-lg bg-emerald px-5 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-emerald-deep"
                                             onClick={() => setCreateTransactionModalOpen(true)}
                                         >
-                                            Sell Crypto
+                                            List USDT
                                             <span className="pl-2"><BsCashCoin /></span>
                                         </button>
                                         <div className="ml-3 relative">
@@ -362,41 +371,20 @@ export default function AppLayout({
                                         </div>
                                     </div>
                                     :
-                                    <div className="hidden fixed top-0 right-0 px-6 py-4 sm:block">
-                                        <>
-                                            <MetamaskButton loginWithMetamask={loginWithMetamask} />
-
-                                            <Link href={route('login')} className="ml-4">
-                                                <button
-                                                    type="button"
-                                                    className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-                                                >
-                                                    Log In
-                                                    <svg
-                                                        aria-hidden="true"
-                                                        className="ml-2 -mr-1 w-5 h-5"
-                                                        fill="currentColor"
-                                                        viewBox="0 0 20 20"
-                                                        xmlns="http://www.w3.org/2000/svg"
-                                                    >
-                                                        <path
-                                                            fillRule="evenodd"
-                                                            d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
-                                                            clipRule="evenodd"
-                                                        ></path>
-                                                    </svg>
-                                                </button>
-                                            </Link>
-
-                                            <Link href={route('register')} className="ml-4">
-                                                <button
-                                                    type="button"
-                                                    className="text-white bg-green-500 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800"
-                                                >
-                                                    Register
-                                                </button>
-                                            </Link>
-                                        </>
+                                    <div className="hidden items-center gap-2 sm:flex">
+                                        <MetamaskButton loginWithMetamask={loginWithMetamask} />
+                                        <Link
+                                            href={route('login')}
+                                            className="rounded-lg bg-emerald px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-deep"
+                                        >
+                                            Log in
+                                        </Link>
+                                        <Link
+                                            href={route('register')}
+                                            className="rounded-lg bg-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-deep"
+                                        >
+                                            Register
+                                        </Link>
                                     </div>
                             }
 
@@ -450,10 +438,22 @@ export default function AppLayout({
                         >
                             <div className="pt-2 pb-3 space-y-1">
                                 <ResponsiveNavLink
+                                    href={route('home')}
+                                    active={route().current('home')}
+                                >
+                                    Home
+                                </ResponsiveNavLink>
+                                <ResponsiveNavLink
                                     href={route('dashboard')}
                                     active={route().current('dashboard')}
                                 >
                                     Dashboard
+                                </ResponsiveNavLink>
+                                <ResponsiveNavLink
+                                    href={route('pay')}
+                                    active={route().current('pay')}
+                                >
+                                    Pay &amp; redeem
                                 </ResponsiveNavLink>
                             </div>
 
@@ -581,8 +581,13 @@ export default function AppLayout({
                 <main className="flex-1">{children({ modal, setModal, walletAddress, setWalletAddress, createTransactionModalOpen, setCreateTransactionModalOpen, user, window })}</main>
             </div>
 
-            <footer className="p-4 bg-white rounded-lg shadow md:px-6 md:py-8 dark:bg-gray-900">
-                <span className="block text-sm text-gray-500 sm:text-center dark:text-gray-400">© 2022 <a href="https://p2p.oneziko.com/" className="hover:underline">e-Mpiya P2P MoMo Crypto eXchange</a>. All Rights Reserved.
+            <footer className="border-t border-[var(--line)] bg-white/80 px-4 py-8 md:px-6">
+                <span className="block text-sm text-ink-muted sm:text-center">
+                    © {new Date().getFullYear()}{' '}
+                    <a href="https://p2p.oneziko.com/" className="font-medium text-ink hover:underline">
+                        e-Mpiya P2P MoMo Crypto eXchange
+                    </a>
+                    . All rights reserved.
                 </span>
             </footer>
 
