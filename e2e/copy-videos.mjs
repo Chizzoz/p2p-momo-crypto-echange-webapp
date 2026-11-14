@@ -6,9 +6,9 @@ const outDir = 'e2e-videos';
 mkdirSync(outDir, { recursive: true });
 
 const names = [
-  '01-list-usdt.webm',
-  '02-buy-usdt.webm',
-  '03-pay-redeem.webm',
+  '01-sell-usdt.webm',
+  '02-sell-momo.webm',
+  '03-pay-with-usdt.webm',
 ];
 
 function findVideos(dir, acc = []) {

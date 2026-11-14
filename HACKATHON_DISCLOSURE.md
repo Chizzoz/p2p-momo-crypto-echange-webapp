@@ -21,7 +21,7 @@ The webapp was an **existing Laravel + Jetstream + Inertia/React** project, sepa
 | Data model | `transactions`, tokens pivot, users, countries / payment methods foundations |
 | Ops beginnings | Moves toward Sepolia, MoMo profile fields, Dokploy/FrankenPHP deploy path |
 
-**What was not finished previously:** a polished public marketplace, full **Buy with MoMo** loop (PawaPay deposit → operator release → seller payout), **Pay & redeem** product UI + settle, or a dedicated listings/dashboard experience with purchase history.
+**What was not finished previously:** polished public marketplaces, full **Sell USDT** loop (PawaPay deposit → operator release → seller fiat wallet), **Sell MoMo** (`depositAndReserve` fills), **Pay with USDT** product UI + settle/refund, or a dedicated listings/dashboard experience with purchase history.
 
 ---
 
@@ -48,7 +48,7 @@ Substantial refactor of the pre-existing app:
 | **Laravel 9 → Laravel 13 / PHP 8.3** | Modern runtime; FrankenPHP production image |
 | **Sepolia-first listing foundation** | Real USDT `approve` + `deposit` (reset-to-zero allowance), chain helpers, amount formatting |
 | **MoMo profile binding** | Country + MNO + MSISDN on user profile before buy/pay |
-| **Marketing / landing redesign** | Brand-forward shell: three pillars (list, request/buy, pay & redeem), markets directory with flags/MNO logos |
+| **Marketing / landing redesign** | Brand-forward shell: three pillars (Sell USDT, Sell MoMo, Pay with USDT), markets directory with flags/MNO logos |
 | **Dokploy Dockerfile** | Multi-stage Vite build-args for `VITE_*`; runtime env for DB/PawaPay/operator |
 | **USDT display** | Human amounts rounded to reasonable decimals (avoid 18-place DB noise) |
 
@@ -60,10 +60,11 @@ Substantial refactor of the pre-existing app:
 
 | New | Description |
 | --- | --- |
-| **`/listings`** | Dedicated USDT marketplace (open offers) |
-| **Dashboard v2** | Wallet USDT balance, open listed USDT, my listings, purchase history |
-| **Pay & redeem (`/pay`)** | EmpiyaPayments.pay → PawaPay payout → operator settle |
-| **Buy flow on listing cards** | Request buy → seller on-chain `reserve` → MoMo deposit → release → seller payout |
+| **`/listings`** | Dedicated **Sell USDT** marketplace (open offers) |
+| **`/momo-offers`** | Dedicated **Sell MoMo** marketplace + create-offer modal |
+| **Dashboard v2** | USDT balance, per-currency fiat wallets + withdraw, my listings, purchase history |
+| **Pay with USDT (`/pay`)** | EmpiyaPayments.pay → PawaPay payout → settle / refund on failure |
+| **Sell USDT buy flow** | Request → seller `reserve` → MoMo deposit → release → seller fiat wallet credit |
 
 ### Backend / MoMo / settlement
 
@@ -93,8 +94,8 @@ Substantial refactor of the pre-existing app:
 | --- | --- |
 | MetaMask login | Worked (SIWE path) |
 | Seller deposit / list | Partially — Sepolia foundation existed; UX incomplete |
-| Browse/buy with MoMo | **Not end-to-end** — no reliable PawaPay deposit → release → seller payout |
-| Pay & redeem | **Stub / unwired** |
+| Browse/buy with MoMo | **Not end-to-end** — no reliable PawaPay deposit → release → seller settlement |
+| Sell MoMo / Pay with USDT | **Stub / unwired** |
 | Marketplace IA | Home/dashboard fragments; no dedicated listings + purchase history |
 | Production | Deployable, but Vite contract addresses easy to miss at **build** time |
 
@@ -102,21 +103,22 @@ Substantial refactor of the pre-existing app:
 
 | Journey | Status |
 | --- | --- |
-| List USDT | **Working** on Sepolia with mintable MockUSDT + MetaMask |
-| Browse listings | **Working** (`/` preview + `/listings`) |
-| Buy with MoMo (sandbox) | **Wired** — request → reserve → deposit → operator release → seller payout (sandbox MSISDNs; live PIN not required in sandbox) |
-| Pay & redeem | **Wired** — pay → payout → settle (Payments operator aligned) |
-| Dashboard | **Working** — balance, my listings, purchases |
+| Sell USDT (list) | **Working** on Sepolia with mintable MockUSDT + MetaMask modal |
+| Browse USDT offers | **Working** (`/` preview + `/listings`) |
+| Sell USDT buy (sandbox) | **Wired** — request → reserve → deposit → release → **fiat wallet credit** |
+| Sell MoMo | **Wired** — MoMo collect → `/momo-offers` → `depositAndReserve` fill → release |
+| Pay with USDT | **Wired** — pay → payout → settle; refund on REJECTED/FAILED |
+| Dashboard | **Working** — USDT + fiat wallets, my listings, purchases |
 | Production demo | **Live** at p2p.oneziko.com — requires rebuild with `VITE_*` build-args after contract redeploys |
 
-**Summary:** Before, the webapp was a **wallet-authenticated Sepolia listing shell** with incomplete fiat rails. Now it is a **three-pillar MoMo ↔ USDT demo**: list, buy/request, and pay & redeem, with operator settlement and PawaPay sandbox integration.
+**Summary:** Before, the webapp was a **wallet-authenticated Sepolia listing shell** with incomplete fiat rails. Now it is a **three-service MoMo ↔ USDT demo**: Sell USDT, Sell MoMo, and Pay with USDT, with operator settlement and PawaPay sandbox integration.
 
 ---
 
 ## 6. Honest attribution
 
 - **Pre-existing:** Laravel/Jetstream app, MetaMask auth, early deposit/dashboard reconciliation, MoMo profile seeds, Dokploy baseline, contracts ABIs/design from the sibling repo.
-- **Built during / for this submission push:** landing + listings/dashboard IA, full PawaPay wiring, operator settlement path, pay & redeem, buy card flow, sandbox smoke/walkthrough tooling, production Vite build-arg fixes for current Sepolia addresses.
+- **Built during / for this submission push:** landing + USDT/MoMo marketplaces + dashboard IA, full PawaPay wiring, operator settlement path, Sell MoMo / Pay with USDT, fiat wallets, buy card flow, sandbox smoke/walkthrough tooling, production Vite build-arg fixes for current Sepolia addresses.
 - **Judging note:** Please evaluate **new MoMo + settlement product loops and UX**, not a claim that Laravel/Jetstream or MetaMask login were invented during the hackathon.
 
 ---

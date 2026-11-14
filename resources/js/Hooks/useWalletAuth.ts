@@ -17,6 +17,8 @@ export default function useWalletAuth() {
   const [walletAddress, setWalletAddress] = useState('');
   const [createTransactionModalOpen, setCreateTransactionModalOpen] =
     useState(false);
+  const [createMoMoOfferModalOpen, setCreateMoMoOfferModalOpen] =
+    useState(false);
   const [dialog, setDialog] = useState<DialogState>({
     open: false,
     title: '',
@@ -71,6 +73,14 @@ export default function useWalletAuth() {
     setCreateTransactionModalOpen(true);
   };
 
+  const openMoMoFlow = (isAuthenticated: boolean) => {
+    if (!isAuthenticated) {
+      void loginWithMetamask();
+      return;
+    }
+    setCreateMoMoOfferModalOpen(true);
+  };
+
   return {
     metamaskModalOpen,
     setMetamaskModalOpen,
@@ -78,10 +88,13 @@ export default function useWalletAuth() {
     setWalletAddress,
     createTransactionModalOpen,
     setCreateTransactionModalOpen,
+    createMoMoOfferModalOpen,
+    setCreateMoMoOfferModalOpen,
     dialog,
     setDialog,
     closeDialog,
     loginWithMetamask,
     openSellFlow,
+    openMoMoFlow,
   };
 }

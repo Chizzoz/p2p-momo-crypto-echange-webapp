@@ -3,6 +3,7 @@
 namespace App\Actions\Fortify;
 
 use App\Models\PaymentMethod;
+use App\Services\WalletService;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -10,6 +11,10 @@ use Laravel\Fortify\Contracts\UpdatesUserProfileInformation;
 
 class UpdateUserProfileInformation implements UpdatesUserProfileInformation
 {
+    public function __construct(
+        protected WalletService $wallets,
+    ) {}
+
     /**
      * Validate and update the given user's profile information.
      *
@@ -84,6 +89,11 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
             $this->updateVerifiedUser($user, $profile);
         } else {
             $user->forceFill($profile)->save();
+        }
+
+        // Opening a MoMo number for a country creates that country's currency wallet.
+        if ($mobileNumber && $countryId && $paymentMethodId) {
+            $this->wallets->ensureWalletForCountry($user->fresh(), $countryId);
         }
     }
 

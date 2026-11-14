@@ -12,7 +12,7 @@ import { CountryOption, PaymentMethodOption } from '@/types';
 function WelcomeContent() {
   const page = useTypedPage();
   const route = useRoute();
-  const { openSellFlow } = useMarketingActions();
+  const { openSellFlow, openMoMoFlow } = useMarketingActions();
 
   const listings = (page.props.all_transactions as any[]) || [];
   const countries = (page.props.countries as CountryOption[]) || [];
@@ -37,26 +37,33 @@ function WelcomeContent() {
               e-Mpiya
             </p>
             <h1 className="hero-rise-delay mt-4 font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-ink text-balance sm:text-5xl lg:text-6xl">
-              Trade USDT with mobile money — list, buy, or pay and redeem.
+              Trade or pay with USDT and mobile money
             </h1>
             <p className="hero-rise-delay-2 mt-5 max-w-xl text-lg text-ink-muted">
-              Peer-to-peer USDT locked in on-chain escrow until MoMo payment is
-              confirmed. Built for African wallets you already use.
+              Escrow when you exchange, redeem when you pay — built for African
+              wallets you already use.
             </p>
             <div className="hero-rise-delay-2 mt-8 flex flex-wrap gap-3">
-              <Link
-                href={route('listings')}
-                className="inline-flex items-center justify-center rounded-lg bg-emerald px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-deep"
-              >
-                Buy USDT with MoMo
-              </Link>
               <button
                 type="button"
                 onClick={openSellFlow}
+                className="inline-flex items-center justify-center rounded-lg bg-emerald px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-deep"
+              >
+                Sell USDT
+              </button>
+              <button
+                type="button"
+                onClick={openMoMoFlow}
                 className="inline-flex items-center justify-center rounded-lg border border-ink/15 bg-white px-5 py-3 text-sm font-semibold text-ink transition hover:border-emerald hover:text-emerald-deep"
               >
-                List USDT
+                Sell MoMo
               </button>
+              <Link
+                href={route('pay')}
+                className="inline-flex items-center justify-center rounded-lg border border-ink/15 bg-white px-5 py-3 text-sm font-semibold text-ink transition hover:border-emerald hover:text-emerald-deep"
+              >
+                Pay with USDT
+              </Link>
             </div>
           </div>
 
@@ -73,13 +80,13 @@ function WelcomeContent() {
               </div>
               <div className="grid gap-3 text-sm text-white/80 sm:grid-cols-3">
                 <div className="rounded-xl bg-white/10 px-3 py-3 backdrop-blur">
-                  List
+                  Sell USDT
                 </div>
                 <div className="rounded-xl bg-white/10 px-3 py-3 backdrop-blur">
-                  Buy with MoMo
+                  Sell MoMo
                 </div>
                 <div className="rounded-xl bg-white/10 px-3 py-3 backdrop-blur">
-                  Pay &amp; redeem
+                  Pay with USDT
                 </div>
               </div>
             </div>
@@ -101,40 +108,42 @@ function WelcomeContent() {
               onClick={openSellFlow}
               className="group rounded-2xl border border-[var(--line)] bg-paper p-6 text-left transition hover:border-emerald"
             >
-              <p className="font-display text-xl font-bold text-ink">List USDT</p>
+              <p className="font-display text-xl font-bold text-ink">Sell USDT</p>
               <p className="mt-3 text-sm text-ink-muted">
-                Post USDT at your rate and receive mobile money from buyers when the trade clears.
+                Exchange USDT for mobile money. Lock USDT in escrow at your rate.
+                When someone pays MoMo, you receive fiat.
               </p>
               <span className="mt-6 inline-flex text-sm font-semibold text-emerald group-hover:underline">
-                Open listing →
+                List USDT →
               </span>
             </button>
-            <Link
-              href={route('listings')}
-              className="group rounded-2xl border border-[var(--line)] bg-paper p-6 transition hover:border-emerald"
+            <button
+              type="button"
+              onClick={openMoMoFlow}
+              className="group rounded-2xl border border-[var(--line)] bg-paper p-6 text-left transition hover:border-emerald"
             >
-              <p className="font-display text-xl font-bold text-ink">
-                Request USDT for fiat
-              </p>
+              <p className="font-display text-xl font-bold text-ink">Sell MoMo</p>
               <p className="mt-3 text-sm text-ink-muted">
-                Browse live offers, pay with MoMo, and receive USDT when escrow releases.
+                Exchange mobile money for USDT. Deposit MoMo first at your rate.
+                When someone fills with USDT, it reserves to your wallet.
               </p>
               <span className="mt-6 inline-flex text-sm font-semibold text-emerald group-hover:underline">
-                Browse offers →
+                List MoMo →
               </span>
-            </Link>
+            </button>
             <Link
               href={route('pay')}
               className="group rounded-2xl border border-[var(--line)] bg-paper p-6 transition hover:border-emerald"
             >
               <p className="font-display text-xl font-bold text-ink">
-                Pay USDT, redeem MoMo
+                Pay with USDT
               </p>
               <p className="mt-3 text-sm text-ink-muted">
-                Send USDT for a recipient to redeem as mobile money — payments with a local off-ramp.
+                Pay someone in USDT; they get MoMo. Not a peer trade — you fund a
+                payment, the recipient redeems as mobile money.
               </p>
               <span className="mt-6 inline-flex text-sm font-semibold text-emerald group-hover:underline">
-                Open pay &amp; redeem →
+                Send payment →
               </span>
             </Link>
           </div>
@@ -289,27 +298,28 @@ function WelcomeContent() {
             Ready to move USDT with MoMo?
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-ink-muted">
-            List inventory, buy from peers, or pay someone who redeems in mobile money.
+            Sell USDT, sell MoMo, or pay someone who redeems in mobile money.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Link
-              href={route('listings')}
-              className="inline-flex rounded-lg bg-emerald px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-deep"
-            >
-              Buy USDT with MoMo
-            </Link>
             <button
               type="button"
               onClick={openSellFlow}
+              className="inline-flex rounded-lg bg-emerald px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-deep"
+            >
+              Sell USDT
+            </button>
+            <button
+              type="button"
+              onClick={openMoMoFlow}
               className="inline-flex rounded-lg border border-ink/15 bg-white px-5 py-3 text-sm font-semibold text-ink hover:border-emerald"
             >
-              List USDT
+              Sell MoMo
             </button>
             <Link
               href={route('pay')}
               className="inline-flex rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-deep"
             >
-              Pay &amp; redeem
+              Pay with USDT
             </Link>
           </div>
         </div>

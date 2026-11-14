@@ -59,60 +59,75 @@ class TransactionController extends Controller
             ]
         );
 
-        // Current User
         $user = auth()->user();
 
-        if (Transaction::where('transaction_key', $request->transaction_key)->get()->isEmpty()) {
-            // New Transaction
-            $transaction = new Transaction;
-            $transaction->user_id = $user->id;
-            $transaction->transaction_key = $request->transaction_key;
-            $transaction->transaction_number = $request->transaction_number;
-            $transaction->amount = $request->amount;
-            $transaction->status = $request->status;
-            $transaction->recipient = $request->recipient;
-            $transaction->save();
+        // Uniqueness is the on-chain transaction_number (bytes32), not transaction_key
+        // (keys restart per depositor and can collide with demo/DB-only rows).
+        $existing = Transaction::query()
+            ->where('transaction_number', $request->transaction_number)
+            ->first();
 
-            if ($request->filled('momo_payment')) {
-                $momo = PaymentMethod::query()
-                    ->where(function ($query) use ($request) {
-                        $query->where('method_slug', $request->momo_payment)
-                            ->orWhere('pawapay_provider', $request->momo_payment);
-                    })
-                    ->first();
+        if ($existing) {
+            return response()->json([
+                'message' => 'Listing already saved.',
+                'transaction' => $existing,
+            ]);
+        }
 
-                if ($momo) {
-                    $transaction_payment_method = new TransactionPaymentMethod;
-                    $transaction_payment_method->transaction_id = $transaction->id;
-                    $transaction_payment_method->payment_method_id = $momo->id;
-                    $transaction_payment_method->save();
-                }
+        $transaction = new Transaction;
+        $transaction->user_id = $user->id;
+        $transaction->transaction_key = $request->transaction_key;
+        $transaction->transaction_number = $request->transaction_number;
+        $transaction->amount = $request->amount;
+        $transaction->status = $request->input('status', 0);
+        $transaction->recipient = $request->recipient;
+        $transaction->save();
+
+        if ($request->filled('momo_payment')) {
+            $momo = PaymentMethod::query()
+                ->where(function ($query) use ($request) {
+                    $query->where('method_slug', $request->momo_payment)
+                        ->orWhere('pawapay_provider', $request->momo_payment);
+                })
+                ->first();
+
+            if ($momo) {
+                $transaction_payment_method = new TransactionPaymentMethod;
+                $transaction_payment_method->transaction_id = $transaction->id;
+                $transaction_payment_method->payment_method_id = $momo->id;
+                $transaction_payment_method->save();
+            }
+        }
+
+        if ($request->boolean('card_payment') || $request->filled('card_payment')) {
+            $card = PaymentMethod::query()
+                ->where('method_slug', 'card')
+                ->first();
+
+            if ($card) {
+                $transaction_payment_method = new TransactionPaymentMethod;
+                $transaction_payment_method->transaction_id = $transaction->id;
+                $transaction_payment_method->payment_method_id = $card->id;
+                $transaction_payment_method->save();
+            }
+        }
+
+        if ($request->filled('token_id')) {
+            $currency = strtoupper((string) $request->input('currency', ''));
+            if (strlen($currency) !== 3) {
+                $user->loadMissing('country.currency');
+                $currency = strtoupper((string) ($user->country?->currency?->currency_slug ?? 'ZMW'));
             }
 
-            if ($request->boolean('card_payment') || $request->filled('card_payment')) {
-                $card = PaymentMethod::query()
-                    ->where('method_slug', 'card')
-                    ->first();
-
-                if ($card) {
-                    $transaction_payment_method = new TransactionPaymentMethod;
-                    $transaction_payment_method->transaction_id = $transaction->id;
-                    $transaction_payment_method->payment_method_id = $card->id;
-                    $transaction_payment_method->save();
-                }
-            }
-
-            // New Transaction Token
             $transaction_token = new TransactionToken;
             $transaction_token->transaction_id = $transaction->id;
             $transaction_token->token_id = $request->token_id;
             $transaction_token->price = $request->price;
+            $transaction_token->currency = strlen($currency) === 3 ? $currency : 'ZMW';
             $transaction_token->save();
-
-            return response()->json($transaction);
-        } else {
-            return response()->json(['message' => 'Transaction already exists.']);
         }
+
+        return response()->json($transaction);
     }
 
     /**

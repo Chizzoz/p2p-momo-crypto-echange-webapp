@@ -2,7 +2,8 @@
 
 Laravel + Inertia/React frontend for the e-Mpiya P2P mobile-money crypto exchange.
 
-**Hackathon judges:** see [HACKATHON_DISCLOSURE.md](./HACKATHON_DISCLOSURE.md) for pre-existing vs new work.
+**Hackathon judges:** see [HACKATHON_DISCLOSURE.md](./HACKATHON_DISCLOSURE.md) for pre-existing vs new work.  
+**Investors:** [docs/INVESTOR_MEMORANDUM.md](./docs/INVESTOR_MEMORANDUM.md) · pitch deck [docs/e-mpiya-pitchdeck.html](./docs/e-mpiya-pitchdeck.html)
 
 1. Frontend repository: https://github.com/Chizzoz/p2p-momo-crypto-echange-webapp  
    Demo DApp: https://p2p.oneziko.com/
@@ -38,18 +39,21 @@ ABIs: `resources/js/abis/`. Helpers: `resources/js/lib/chain.ts`, `contracts.ts`
 
 | Route | Purpose |
 | --- | --- |
-| `/` | Marketing landing + markets + listing preview |
-| `/listings` | Full open USDT marketplace |
-| `/dashboard` | Wallet USDT balance, my listings, purchase history (auth) |
-| `/pay` | Pay USDT & redeem MoMo |
+| `/` | Marketing landing + markets + **USDT offers** preview |
+| `/listings` | Full open **Sell USDT** marketplace |
+| `/momo-offers` | Full open **Sell MoMo** marketplace |
+| `/dashboard` | USDT balance, per-currency fiat wallets, my listings, purchases (auth) |
+| `/pay` | **Pay with USDT** · redeem as MoMo |
 
-### Flows
+List USDT and List MoMo open from header / Welcome as **modals** (same pattern).
 
-1. **List USDT** — MetaMask on Sepolia → approve USDT (reset-to-zero if needed) → EmpiyaP2P `deposit` → Laravel listing row.
-2. **Buy / request USDT** — Buyer requests buy → seller on-chain `reserve(buyer)` → PawaPay MoMo deposit → operator `releaseToBuyer` → seller MoMo payout.
-3. **Pay & redeem** — Client `EmpiyaPayments.pay` → PawaPay payout to recipient MoMo → operator `settle`.
+### Three services
 
-Webhooks: `POST /webhooks/pawapay/deposits` and `/webhooks/pawapay/payouts` (plus scheduled status poller).
+1. **Sell USDT** — MetaMask → approve USDT → EmpiyaP2P `deposit` → listing. Buyer requests → seller `reserve(buyer)` → PawaPay MoMo collect → operator `releaseToBuyer` → seller **fiat wallet credit** (per currency) → optional MoMo withdraw later.
+2. **Sell MoMo** — List MoMo modal → PawaPay collect at seller rate → open offer on `/momo-offers`. Filler `depositAndReserve` → operator `releaseToBuyer` → MoMo seller’s fiat proceeds credited / USDT to the MoMo seller’s wallet address.
+3. **Pay with USDT** — Client `EmpiyaPayments.pay` → PawaPay payout to recipient MoMo (country → currency/network) → operator `settle` on success; **`refund` on payout REJECTED/FAILED**. Amounts rounded to provider precision before PawaPay.
+
+Webhooks: `POST /webhooks/pawapay/deposits` and `/webhooks/pawapay/payouts` (plus scheduled status poller). Prefer `QUEUE_CONNECTION=database` (or redis) in production — `sync` can nest status jobs awkwardly.
 
 ## Local setup (DDEV)
 
@@ -117,6 +121,8 @@ Zambia **COMPLETED** examples:
 | Airtel | `AIRTEL_OAPI_ZMB` | `260973456789` |
 | Zamtel | `ZAMTEL_ZMB` | `260953456700` |
 
+Fiat amounts sent to PawaPay are formatted to the provider’s allowed decimals (e.g. Airtel ZMW ≤ 2 places). Do not pass Eloquent `decimal:8` padding into payout payloads.
+
 Smoke checks:
 
 ```bash
@@ -126,12 +132,14 @@ ddev exec php scripts/smoke-pawapay-sandbox.php  # deposit + payout COMPLETED nu
 
 ## Playwright walkthroughs
 
+Records **Sell USDT**, **Sell MoMo**, and **Pay with USDT**:
+
 ```bash
 ddev exec php scripts/setup-walkthrough-users.php
 npm run e2e:walkthrough   # records videos + combines chapters
 ```
 
-See [e2e/README.md](./e2e/README.md). Combined video: `e2e-videos/empiya-walkthrough.mp4`.
+See [e2e/README.md](./e2e/README.md). Combined video: `e2e-videos/empiya-walkthrough.mp4` (chapter markers for each service).
 
 ## Related contracts docs
 

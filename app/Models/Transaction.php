@@ -25,11 +25,17 @@ class Transaction extends Model
         'reservation_id',
         'momo_deposit_id',
         'momo_payout_id',
+        'buy_order_id',
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function buyOrder()
+    {
+        return $this->belongsTo(BuyOrder::class);
     }
 
     public function paymentMethods()

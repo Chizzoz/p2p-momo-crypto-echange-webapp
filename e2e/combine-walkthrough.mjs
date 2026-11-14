@@ -9,16 +9,16 @@ import { join } from 'path';
 const dir = join(process.cwd(), 'e2e-videos');
 const inputs = [
   {
-    file: join(dir, '01-list-usdt.webm'),
-    title: '1. List USDT',
+    file: join(dir, '01-sell-usdt.webm'),
+    title: '1. Sell USDT',
   },
   {
-    file: join(dir, '02-buy-usdt.webm'),
-    title: '2. Buy / Request USDT',
+    file: join(dir, '02-sell-momo.webm'),
+    title: '2. Sell MoMo',
   },
   {
-    file: join(dir, '03-pay-redeem.webm'),
-    title: '3. Pay & redeem',
+    file: join(dir, '03-pay-with-usdt.webm'),
+    title: '3. Pay with USDT',
   },
 ];
 

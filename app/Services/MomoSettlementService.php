@@ -3,10 +3,12 @@
 namespace App\Services;
 
 use App\Jobs\CheckMomoTransferStatus;
+use App\Models\BuyOrder;
 use App\Models\MomoTransfer;
 use App\Models\PaymentMethod;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Models\WalletLedgerEntry;
 use Chizzoz\PawaPay\Facades\PawaPay;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -17,6 +19,8 @@ class MomoSettlementService
 {
     public function __construct(
         protected EmpiyaOperatorService $operator,
+        protected WalletService $wallet,
+        protected BuyOrderService $buyOrders,
     ) {}
 
     /**
@@ -40,23 +44,32 @@ class MomoSettlementService
         }
 
         $tokenPivot = $transaction->tokenPivot;
-        $fiatAmount = number_format(
-            (float) $transaction->amount * (float) ($tokenPivot?->price ?? 0),
-            2,
-            '.',
-            ''
-        );
-        if ((float) $fiatAmount <= 0) {
+        $rawFiat = (float) $transaction->amount * (float) ($tokenPivot?->price ?? 0);
+        if ($rawFiat <= 0) {
             throw new RuntimeException('Listing fiat total is invalid.');
         }
 
         $buyer->loadMissing('country.currency');
-        $currencySlug = strtoupper((string) ($buyer->country?->currency?->currency_slug ?? 'ZMW'));
-        $currency = strlen($currencySlug) === 3 ? $currencySlug : 'ZMW';
+        $listingCurrency = strtoupper((string) ($tokenPivot?->currency ?? ''));
+        $buyerCurrency = strtoupper((string) ($buyer->country?->currency?->currency_slug ?? ''));
+        $currency = strlen($listingCurrency) === 3
+            ? $listingCurrency
+            : (strlen($buyerCurrency) === 3 ? $buyerCurrency : 'ZMW');
+
+        if (strlen($buyerCurrency) === 3 && $buyerCurrency !== $currency) {
+            throw new RuntimeException(
+                "This listing is priced in {$currency}. Bind a MoMo number for a {$currency} country to buy."
+            );
+        }
 
         $depositId = (string) Str::uuid();
+        $fiatAmount = $this->wallet->normalizeAmountForProvider(
+            $rawFiat,
+            $method->pawapay_provider,
+            $currency,
+        );
 
-        return DB::transaction(function () use (
+        $transfer = DB::transaction(function () use (
             $buyer,
             $transaction,
             $reserve,
@@ -108,17 +121,39 @@ class MomoSettlementService
                 ],
             );
 
-            $status = strtoupper((string) ($response['status'] ?? $response['data']['status'] ?? 'ACCEPTED'));
-            $transfer->markStatus($status === 'COMPLETED' ? MomoTransfer::STATUS_COMPLETED : MomoTransfer::STATUS_ACCEPTED);
+            $status = $this->statusFromPawaPayCreateResponse($response);
+            if ($this->isPawaPayFailureStatus($status)) {
+                $transfer->markStatus(MomoTransfer::STATUS_FAILED);
+                $this->storeFailureReason($transfer, $response);
 
-            CheckMomoTransferStatus::dispatch($transfer->id)->delay(now()->addSeconds(15));
-
-            if ($transfer->status === MomoTransfer::STATUS_COMPLETED) {
-                $this->handleDepositCompleted($transfer->fresh());
+                return $transfer->fresh();
             }
+
+            $transfer->markStatus($status === 'COMPLETED' ? MomoTransfer::STATUS_COMPLETED : MomoTransfer::STATUS_ACCEPTED);
 
             return $transfer->fresh();
         });
+
+        // On-chain release + wallet credit must run AFTER the DB commit so a later
+        // failure cannot roll back the MoMo row while USDT is already gone.
+        if ($transfer->status === MomoTransfer::STATUS_FAILED) {
+            $failed = $transfer->fresh();
+            $this->handleTransferFailed($failed);
+            $reason = $failed->metadata['failure_message']
+                ?? $failed->metadata['failure_code']
+                ?? 'REJECTED';
+            throw new RuntimeException('PawaPay deposit rejected: '.$reason);
+        }
+
+        if ($transfer->status === MomoTransfer::STATUS_COMPLETED) {
+            $this->handleDepositCompleted($transfer->fresh());
+        } else {
+            CheckMomoTransferStatus::dispatch($transfer->id)
+                ->delay(now()->addSeconds(15))
+                ->afterResponse();
+        }
+
+        return $transfer->fresh();
     }
 
     public function startPayRedeemPayout(
@@ -130,6 +165,8 @@ class MomoSettlementService
         string $currency = 'ZMW',
         string $fiatAmount = '0',
     ): MomoTransfer {
+        $currency = strtoupper($currency);
+        $fiatAmount = $this->wallet->normalizeAmountForProvider($fiatAmount, $provider, $currency);
         $payoutId = (string) Str::uuid();
 
         $transfer = MomoTransfer::create([
@@ -140,7 +177,7 @@ class MomoSettlementService
             'pawapay_id' => $payoutId,
             'provider' => $provider,
             'phone' => $phone,
-            'currency' => strtoupper($currency),
+            'currency' => $currency,
             'amount' => $fiatAmount,
             'payment_id' => $paymentId,
             'metadata' => [
@@ -148,26 +185,44 @@ class MomoSettlementService
             ],
         ]);
 
-        $response = PawaPay::payout(
-            $payoutId,
-            $fiatAmount,
-            $phone,
-            $provider,
-            strtoupper($currency),
-            'eMpiya redeem',
-            [
-                'payment_id' => $paymentId,
-                'purpose' => MomoTransfer::PURPOSE_PAY_REDEEM,
-            ],
-        );
+        try {
+            $response = PawaPay::payout(
+                $payoutId,
+                $fiatAmount,
+                $phone,
+                $provider,
+                $currency,
+                'eMpiya redeem',
+                [
+                    'payment_id' => $paymentId,
+                    'purpose' => MomoTransfer::PURPOSE_PAY_REDEEM,
+                ],
+            );
+        } catch (\Throwable $e) {
+            $transfer->markStatus(MomoTransfer::STATUS_FAILED);
+            $this->handleTransferFailed($transfer->fresh());
+            throw $e;
+        }
 
-        $status = strtoupper((string) ($response['status'] ?? $response['data']['status'] ?? 'ACCEPTED'));
+        $status = $this->statusFromPawaPayCreateResponse($response);
+        if ($this->isPawaPayFailureStatus($status)) {
+            $transfer->markStatus(MomoTransfer::STATUS_FAILED);
+            $this->storeFailureReason($transfer, $response);
+            $this->handleTransferFailed($transfer->fresh());
+            $reason = $response['failureReason']['failureMessage']
+                ?? $response['failureReason']['failureCode']
+                ?? $status;
+            throw new RuntimeException('PawaPay payout rejected: '.$reason);
+        }
+
         $transfer->markStatus($status === 'COMPLETED' ? MomoTransfer::STATUS_COMPLETED : MomoTransfer::STATUS_ACCEPTED);
-
-        CheckMomoTransferStatus::dispatch($transfer->id)->delay(now()->addSeconds(15));
 
         if ($transfer->status === MomoTransfer::STATUS_COMPLETED) {
             $this->handlePayoutCompleted($transfer->fresh());
+        } else {
+            CheckMomoTransferStatus::dispatch($transfer->id)
+                ->delay(now()->addSeconds(15))
+                ->afterResponse();
         }
 
         return $transfer->fresh();
@@ -191,6 +246,7 @@ class MomoSettlementService
             return $transfer;
         }
 
+        $status = $this->normalizeTerminalStatus($status);
         $transfer->markStatus($status);
 
         if ($status === MomoTransfer::STATUS_COMPLETED) {
@@ -230,7 +286,9 @@ class MomoSettlementService
             return null;
         }
 
-        $status = strtoupper((string) ($payload['status'] ?? $transfer->status));
+        $status = $this->normalizeTerminalStatus(
+            strtoupper((string) ($payload['status'] ?? $transfer->status))
+        );
         $transfer->markStatus($status);
 
         if ($status === MomoTransfer::STATUS_COMPLETED) {
@@ -251,6 +309,15 @@ class MomoSettlementService
 
     protected function handleDepositCompleted(MomoTransfer $transfer): void
     {
+        if ($transfer->purpose === MomoTransfer::PURPOSE_P2P_BUY_ORDER) {
+            $order = $this->buyOrders->findOrderForTransfer($transfer);
+            if ($order) {
+                $this->buyOrders->openOrderAfterMomo($order, $transfer);
+            }
+
+            return;
+        }
+
         if ($transfer->purpose !== MomoTransfer::PURPOSE_P2P_BUY) {
             return;
         }
@@ -279,55 +346,154 @@ class MomoSettlementService
 
         $transaction->update(['status' => 2]); // Complete / Sold
 
-        $this->startSellerPayout($transaction, $transfer);
+        // Credit seller ZMW wallet — they withdraw to MoMo manually later.
+        $this->creditSellerWallet($transaction, $transfer);
     }
 
-    protected function startSellerPayout(Transaction $transaction, MomoTransfer $buyDeposit): void
+    protected function creditSellerWallet(Transaction $transaction, MomoTransfer $buyDeposit): void
     {
         $seller = $transaction->user;
-        if (! $seller?->mobile_number || ! $seller->payment_method_id) {
-            Log::warning('Seller missing MoMo profile for payout', ['transaction_id' => $transaction->id]);
+        if (! $seller) {
+            Log::warning('Seller missing for wallet credit', ['transaction_id' => $transaction->id]);
 
             return;
         }
 
-        /** @var PaymentMethod|null $method */
-        $method = PaymentMethod::query()->find($seller->payment_method_id);
-        if (! $method?->pawapay_provider) {
-            return;
+        $amount = $this->wallet->normalizeAmount((string) $buyDeposit->amount);
+        $currency = strtoupper((string) ($buyDeposit->currency ?: 'ZMW'));
+
+        $buyDeposit->loadMissing('user');
+        $buyerCountryId = $buyDeposit->user?->country_id ?? $seller->country_id;
+
+        $entry = $this->wallet->credit(
+            $seller,
+            $amount,
+            WalletLedgerEntry::TYPE_P2P_SALE_CREDIT,
+            'transactions',
+            (int) $transaction->id,
+            'P2P sale proceeds (USDT released to buyer)',
+            $currency,
+            [
+                'momo_deposit_id' => $buyDeposit->id,
+                'usdt_amount' => (string) $transaction->amount,
+            ],
+            $buyerCountryId ? (int) $buyerCountryId : null,
+        );
+
+        $meta = $buyDeposit->metadata ?? [];
+        $meta['seller_wallet_credited'] = true;
+        $meta['wallet_ledger_id'] = $entry?->id;
+        $buyDeposit->metadata = $meta;
+        $buyDeposit->save();
+    }
+
+    /**
+     * Manual ZMW wallet → MoMo payout (any eligible phone/network).
+     */
+    public function startWalletWithdraw(
+        User $user,
+        string $amount,
+        string $phone,
+        PaymentMethod $method,
+        string $currency = 'ZMW',
+    ): MomoTransfer {
+        if (! $method->pawapay_provider) {
+            throw new RuntimeException('Selected mobile network is missing a PawaPay provider code.');
         }
 
+        $currency = strtoupper($currency);
+        // Ledger stays 2dp; API payload uses provider precision (may be 0).
+        $ledgerAmount = $this->wallet->normalizeAmount($amount);
+        $payoutAmount = $this->wallet->normalizeAmountForProvider(
+            $ledgerAmount,
+            $method->pawapay_provider,
+            $currency,
+        );
         $payoutId = (string) Str::uuid();
+
         $payout = MomoTransfer::create([
-            'user_id' => $seller->id,
-            'transaction_id' => $transaction->id,
+            'user_id' => $user->id,
             'direction' => MomoTransfer::DIRECTION_PAYOUT,
-            'purpose' => MomoTransfer::PURPOSE_P2P_SELLER_PAYOUT,
+            'purpose' => MomoTransfer::PURPOSE_WALLET_WITHDRAW,
             'status' => MomoTransfer::STATUS_PENDING,
             'pawapay_id' => $payoutId,
             'provider' => $method->pawapay_provider,
-            'phone' => $seller->mobile_number,
-            'currency' => $buyDeposit->currency,
-            'amount' => $buyDeposit->amount,
-            'metadata' => ['from_deposit' => $buyDeposit->id],
+            'phone' => $phone,
+            'currency' => $currency,
+            'amount' => $payoutAmount,
+            'metadata' => [
+                'source' => 'fiat_wallet',
+                'currency' => $currency,
+                'ledger_amount' => $ledgerAmount,
+            ],
         ]);
 
-        $transaction->update(['momo_payout_id' => $payout->id]);
+        try {
+            $this->wallet->debit(
+                $user,
+                $ledgerAmount,
+                WalletLedgerEntry::TYPE_WALLET_WITHDRAW,
+                'momo_transfers',
+                (int) $payout->id,
+                'Withdraw to mobile money',
+                $currency,
+                ['phone' => $phone, 'provider' => $method->pawapay_provider],
+            );
+        } catch (\Throwable $e) {
+            $payout->markStatus(MomoTransfer::STATUS_FAILED);
+            throw $e;
+        }
 
-        $response = PawaPay::payout(
-            $payoutId,
-            (string) $buyDeposit->amount,
-            $seller->mobile_number,
-            $method->pawapay_provider,
-            $buyDeposit->currency,
-            'eMpiya P2P sell',
-            ['transaction_id' => (string) $transaction->id],
-        );
+        try {
+            $response = PawaPay::payout(
+                $payoutId,
+                $payoutAmount,
+                $phone,
+                $method->pawapay_provider,
+                $currency,
+                'eMpiya wallet withdraw',
+                ['momo_transfer_id' => (string) $payout->id],
+            );
+        } catch (\Throwable $e) {
+            $this->reverseWalletWithdraw($user, $payout, $ledgerAmount, $currency);
+            throw $e;
+        }
 
-        $status = strtoupper((string) ($response['status'] ?? $response['data']['status'] ?? 'ACCEPTED'));
+        $status = $this->statusFromPawaPayCreateResponse($response);
+        if ($this->isPawaPayFailureStatus($status)) {
+            $payout->markStatus(MomoTransfer::STATUS_FAILED);
+            $this->storeFailureReason($payout, $response);
+            $this->reverseWalletWithdraw($user, $payout, $ledgerAmount, $currency);
+            $reason = $response['failureReason']['failureMessage']
+                ?? $response['failureReason']['failureCode']
+                ?? $status;
+            throw new RuntimeException('PawaPay payout rejected: '.$reason);
+        }
+
         $payout->markStatus($status === 'COMPLETED' ? MomoTransfer::STATUS_COMPLETED : MomoTransfer::STATUS_ACCEPTED);
+        CheckMomoTransferStatus::dispatch($payout->id)
+            ->delay(now()->addSeconds(15))
+            ->afterResponse();
 
-        CheckMomoTransferStatus::dispatch($payout->id)->delay(now()->addSeconds(15));
+        return $payout->fresh();
+    }
+
+    protected function reverseWalletWithdraw(
+        User $user,
+        MomoTransfer $payout,
+        string $amount,
+        string $currency,
+    ): void {
+        $this->wallet->credit(
+            $user,
+            $amount,
+            WalletLedgerEntry::TYPE_WALLET_WITHDRAW_REVERSAL,
+            'momo_transfers',
+            (int) $payout->id,
+            'Withdraw failed — balance restored',
+            $currency,
+            ['reversal_of' => 'wallet_withdraw'],
+        );
     }
 
     protected function handlePayoutCompleted(MomoTransfer $transfer): void
@@ -349,6 +515,18 @@ class MomoSettlementService
 
     protected function handleTransferFailed(MomoTransfer $transfer): void
     {
+        if ($transfer->purpose === MomoTransfer::PURPOSE_P2P_BUY_ORDER) {
+            $order = $this->buyOrders->findOrderForTransfer($transfer);
+            // Cancel only if MoMo failed before a filler locked the offer.
+            if ($order && in_array($order->status, [
+                BuyOrder::STATUS_PENDING_MOMO,
+                BuyOrder::STATUS_OPEN,
+            ], true)) {
+                $order->status = BuyOrder::STATUS_CANCELLED;
+                $order->save();
+            }
+        }
+
         if ($transfer->purpose === MomoTransfer::PURPOSE_P2P_BUY) {
             $meta = $transfer->metadata ?? [];
             if (empty($meta['refunded']) && $transfer->depositor_address && $transfer->reservation_id) {
@@ -383,6 +561,28 @@ class MomoSettlementService
                     $transfer->save();
                 } catch (\Throwable $e) {
                     Log::error('Failed to refund EmpiyaPayments after MoMo payout failure', [
+                        'transfer_id' => $transfer->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+        }
+
+        if ($transfer->purpose === MomoTransfer::PURPOSE_WALLET_WITHDRAW && $transfer->user) {
+            $meta = $transfer->metadata ?? [];
+            if (empty($meta['wallet_reversed'])) {
+                try {
+                    $this->reverseWalletWithdraw(
+                        $transfer->user,
+                        $transfer,
+                        $this->wallet->normalizeAmount((string) $transfer->amount),
+                        strtoupper((string) ($transfer->currency ?: 'ZMW')),
+                    );
+                    $meta['wallet_reversed'] = true;
+                    $transfer->metadata = $meta;
+                    $transfer->save();
+                } catch (\Throwable $e) {
+                    Log::error('Failed to reverse wallet withdraw after payout failure', [
                         'transfer_id' => $transfer->id,
                         'error' => $e->getMessage(),
                     ]);
@@ -430,5 +630,40 @@ class MomoSettlementService
         $nested = $response['data']['status'] ?? $response[0]['status'] ?? null;
 
         return $nested ? strtoupper((string) $nested) : strtoupper($fallback);
+    }
+
+    /**
+     * @param  array<string, mixed>  $response
+     */
+    protected function statusFromPawaPayCreateResponse(array $response): string
+    {
+        return strtoupper((string) ($response['status'] ?? $response['data']['status'] ?? 'ACCEPTED'));
+    }
+
+    protected function isPawaPayFailureStatus(string $status): bool
+    {
+        return in_array(strtoupper($status), ['REJECTED', 'FAILED'], true);
+    }
+
+    /**
+     * Map provider terminal statuses onto our transfer model.
+     */
+    protected function normalizeTerminalStatus(string $status): string
+    {
+        $status = strtoupper($status);
+
+        return $status === 'REJECTED' ? MomoTransfer::STATUS_FAILED : $status;
+    }
+
+    /**
+     * @param  array<string, mixed>  $response
+     */
+    protected function storeFailureReason(MomoTransfer $transfer, array $response): void
+    {
+        $meta = $transfer->metadata ?? [];
+        $meta['failure_code'] = $response['failureReason']['failureCode'] ?? null;
+        $meta['failure_message'] = $response['failureReason']['failureMessage'] ?? null;
+        $transfer->metadata = $meta;
+        $transfer->save();
     }
 }

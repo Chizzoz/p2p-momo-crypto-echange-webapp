@@ -32,6 +32,7 @@ class ListingCatalog
                 'users.eth_address',
                 'transaction_tokens.token_id',
                 'transaction_tokens.price',
+                'transaction_tokens.currency',
                 'tokens.token',
                 'tokens.symbol'
             )
@@ -45,7 +46,11 @@ class ListingCatalog
 
     public function open(): Collection
     {
-        return $this->query()->where('transactions.status', 0)->get();
+        // Only surface listings with a real on-chain bytes32 transaction_number.
+        return $this->query()
+            ->where('transactions.status', 0)
+            ->whereRaw("transactions.transaction_number REGEXP '^0x[0-9a-fA-F]{64}$'")
+            ->get();
     }
 
     public function forSeller(int $userId): Collection

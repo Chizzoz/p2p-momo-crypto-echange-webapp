@@ -27,14 +27,14 @@ function ListingsContent() {
         <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-emerald">
-              Marketplace
+              Sell USDT
             </p>
             <h1 className="mt-3 font-display text-4xl font-extrabold tracking-tight text-ink sm:text-5xl">
-              USDT listings
+              USDT offers
             </h1>
             <p className="mt-3 max-w-2xl text-ink-muted">
-              Request USDT against open seller offers. Pay with mobile money;
-              escrow releases crypto when MoMo clears.
+              Buy with MoMo against open USDT escrow offers. Escrow releases
+              crypto when your mobile money payment clears.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -46,6 +46,12 @@ function ListingsContent() {
               List USDT
             </button>
             <Link
+              href={route('buy_orders.index')}
+              className="inline-flex rounded-lg border border-ink/15 bg-white px-5 py-3 text-sm font-semibold text-ink hover:border-emerald"
+            >
+              Sell MoMo instead
+            </Link>
+            <Link
               href={route('dashboard')}
               className="inline-flex rounded-lg border border-ink/15 bg-white px-5 py-3 text-sm font-semibold text-ink hover:border-emerald"
             >
@@ -55,7 +61,10 @@ function ListingsContent() {
         </div>
 
         {listings.length > 0 ? (
-          <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <div
+            id="open-offers"
+            className="mt-12 grid scroll-mt-28 grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3"
+          >
             {listings.map((listing: any) => (
               <ListingCard
                 listing={listing}
@@ -64,7 +73,10 @@ function ListingsContent() {
             ))}
           </div>
         ) : (
-          <div className="mt-12 rounded-2xl border border-dashed border-[var(--line)] bg-paper px-6 py-16 text-center">
+          <div
+            id="open-offers"
+            className="mt-12 rounded-2xl border border-dashed border-[var(--line)] bg-paper px-6 py-16 text-center"
+          >
             <p className="font-display text-xl font-semibold text-ink">
               No open USDT offers yet
             </p>
@@ -87,7 +99,7 @@ function ListingsContent() {
 
 export default function Listings() {
   return (
-    <MarketingLayout title="USDT Listings">
+    <MarketingLayout title="USDT offers">
       <ListingsContent />
     </MarketingLayout>
   );

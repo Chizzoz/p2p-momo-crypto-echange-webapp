@@ -33,6 +33,10 @@ export interface CountryOption {
   name: string;
   iso2: string;
   iso3: string;
+  currency_id?: number | null;
+  currency_code?: string;
+  currency_symbol?: string | null;
+  currency_name?: string | null;
 }
 
 export interface PaymentMethodOption {

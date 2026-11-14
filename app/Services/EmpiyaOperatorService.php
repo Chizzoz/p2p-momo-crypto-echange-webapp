@@ -46,6 +46,23 @@ class EmpiyaOperatorService
     }
 
     /**
+     * Reopen a timed-out on-chain reservation (operator or called after seller MetaMask expire).
+     *
+     * @return array<string, mixed>
+     */
+    public function expireReservation(
+        string $depositor,
+        int|string $transactionKey,
+        string $transactionNumber,
+    ): array {
+        return $this->run('expireReservation', [
+            'depositor' => $depositor,
+            'transactionKey' => $transactionKey,
+            'transactionNumber' => $transactionNumber,
+        ]);
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function settlePayment(string $paymentId): array

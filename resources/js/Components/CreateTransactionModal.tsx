@@ -1,11 +1,13 @@
 import React, { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
+import { router, useForm } from '@inertiajs/react';
+import axios from 'axios';
+import classNames from 'classnames';
 import InputLabel from './InputLabel';
 import TextInput from './TextInput';
 import InputError from './InputError';
 import SecondaryButton from './SecondaryButton';
-import classNames from 'classnames';
-import { useForm } from '@inertiajs/react';
+import useRoute from '@/Hooks/useRoute';
 import useTypedPage from '@/Hooks/useTypedPage';
 import { chainConfig } from '@/lib/chain';
 import {
@@ -20,7 +22,7 @@ import {
   UserFacingTxError,
 } from '@/lib/contracts';
 import { detectMsisdn, formatMsisdnDisplay } from '@/lib/msisdn';
-import { formatUsdt, parseUsdt } from '@/lib/units';
+import { formatUsdt, formatUsdtAmount, parseUsdt } from '@/lib/units';
 import { CountryOption, PaymentMethodOption } from '@/types';
 
 type CreateTransactionModalProps = {
@@ -40,6 +42,7 @@ export default function CreateTransactionModal({
   setModalOpen,
 }: CreateTransactionModalProps) {
   const page = useTypedPage();
+  const route = useRoute();
   const user = page.props.user;
   const tokens: TokenProps[] = (page.props.tokens as TokenProps[]) || [];
   const countries: CountryOption[] =
@@ -78,6 +81,7 @@ export default function CreateTransactionModal({
     'info',
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [listingCreated, setListingCreated] = useState(false);
   const [availableBalance, setAvailableBalance] = useState<string | null>(null);
   const [balanceError, setBalanceError] = useState<string>('');
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
@@ -107,6 +111,15 @@ export default function CreateTransactionModal({
   const selectedCountry = countries.find(
     country => country.iso3 === selectedCountryIso3,
   );
+
+  const fiatCurrency = useMemo(() => {
+    const code = String(
+      selectedCountry?.currency_code ||
+        profileCountry?.currency_code ||
+        '',
+    ).toUpperCase();
+    return code.length === 3 ? code : 'ZMW';
+  }, [selectedCountry?.currency_code, profileCountry?.currency_code]);
 
   const networksForCountry = useMemo(() => {
     if (!selectedCountry) {
@@ -180,6 +193,10 @@ export default function CreateTransactionModal({
       return;
     }
 
+    setListingCreated(false);
+    setStatusMessage('');
+    setStatusTone('info');
+
     let cancelled = false;
 
     async function loadBalance() {
@@ -221,7 +238,7 @@ export default function CreateTransactionModal({
   }, [modalOpen]);
 
   async function submitTransactionDetails() {
-    if (isSubmitting) {
+    if (isSubmitting || listingCreated) {
       return;
     }
 
@@ -232,6 +249,18 @@ export default function CreateTransactionModal({
       const amount = parseUsdt(form.data.amount);
       if (amount.lte(0)) {
         throw new UserFacingTxError('Enter a USDT amount greater than zero.');
+      }
+
+      const price = Number(form.data.price);
+      if (!Number.isFinite(price) || price <= 0) {
+        throw new UserFacingTxError(
+          `Enter a unit price in ${fiatCurrency} greater than zero.`,
+        );
+      }
+
+      const tokenId = Number(form.data.token);
+      if (!Number.isInteger(tokenId) || tokenId <= 0) {
+        throw new UserFacingTxError('Select a token for this listing.');
       }
 
       const recipientNumber = hasBoundMomo
@@ -278,27 +307,44 @@ export default function CreateTransactionModal({
       const lastKey = txs.length > 0 ? txs.length - 1 : undefined;
       const last = lastKey !== undefined ? txs[lastKey] : undefined;
 
+      if (lastKey === undefined || !last?.transactionNumber) {
+        throw new UserFacingTxError(
+          'Deposit confirmed on-chain, but the listing key could not be read. Refresh and check Dashboard.',
+        );
+      }
+
       const refreshed = await getUsdtBalance(sellerAddress, signer);
       setAvailableBalance(formatUsdt(refreshed));
 
+      setProgress('Saving listing…');
+      await axios.post(route('store_transaction'), {
+        transaction_key: lastKey,
+        transaction_number: String(last.transactionNumber),
+        amount: Number(form.data.amount),
+        status: Number(last.status ?? 0),
+        recipient: String(last.recipient || sellerAddress),
+        momo_payment: form.data.momo_payment,
+        token_id: tokenId,
+        price,
+        currency: fiatCurrency,
+      });
+
+      setListingCreated(true);
       setStatusTone('success');
       setStatusMessage(
-        `Deposit confirmed${last?.transactionNumber ? ` (${last.transactionNumber})` : ''}. Tx: ${receipt.transactionHash}`,
+        `Listing created for ${formatUsdtAmount(form.data.amount)} USDT. Tx: ${receipt.transactionHash}`,
       );
-      console.log('deposit receipt', {
-        receipt,
-        transactionKey: lastKey,
-        transactionNumber: last?.transactionNumber,
-        reservationId: last?.reservationId?.toString?.(),
-        reservedAt: last?.reservedAt?.toString?.(),
-        recipientMobile: hasBoundMomo
-          ? formatMsisdnDisplay(profileMobile) || profileMobile
-          : formatMsisdnDisplay(recipientNumber) || recipientNumber,
-        recipientCountry: selectedCountryIso3,
-        recipientNetwork: form.data.momo_payment,
-      });
+
+      window.setTimeout(() => {
+        setModalOpen(false);
+        router.visit(route('listings'));
+      }, 1200);
     } catch (error: any) {
-      const message = formatTxError(error);
+      const message =
+        error?.response?.data?.message ||
+        formatTxError(error) ||
+        error?.message ||
+        'Could not create listing.';
       setStatusTone('error');
       setStatusMessage(message);
       if (!(error instanceof UserFacingTxError)) {
@@ -367,7 +413,7 @@ export default function CreateTransactionModal({
                       as="h3"
                       className="text-lg leading-6 font-medium text-gray-900"
                     >
-                      Create USDT Listing (Sepolia)
+                      List USDT (get MoMo)
                     </Dialog.Title>
                     <div className="mt-2">
                       <form>
@@ -592,7 +638,7 @@ export default function CreateTransactionModal({
                             <div className="col-span-6 sm:col-span-4">
                               <InputLabel
                                 htmlFor="price"
-                                value="Unit Price in ZMW"
+                                value={`Unit Price in ${fiatCurrency}`}
                               />
                               <TextInput
                                 id="price"
@@ -605,6 +651,14 @@ export default function CreateTransactionModal({
                                 autoComplete="price"
                                 disabled={isSubmitting}
                               />
+                              <p className="mt-1 text-xs text-gray-500">
+                                {selectedCountry
+                                  ? `${selectedCountry.name} · ${fiatCurrency}`
+                                  : `Price currency follows the MoMo country (${fiatCurrency}).`}
+                                {selectedCountry?.currency_name
+                                  ? ` (${selectedCountry.currency_name})`
+                                  : ''}
+                              </p>
                               <InputError
                                 message={form.errors.price}
                                 className="mt-2"
@@ -635,17 +689,22 @@ export default function CreateTransactionModal({
                             <div className="col-span-6 sm:col-span-4">
                               <SecondaryButton
                                 className={classNames(
-                                  { 'opacity-25': isSubmitting },
+                                  {
+                                    'opacity-25':
+                                      isSubmitting || listingCreated,
+                                  },
                                   'mt-2 mr-2',
                                 )}
                                 type="button"
-                                onClick={() => submitTransactionDetails()}
-                                disabled={isSubmitting}
+                                onClick={() => void submitTransactionDetails()}
+                                disabled={isSubmitting || listingCreated}
                                 aria-busy={isSubmitting}
                               >
-                                {isSubmitting
-                                  ? 'Waiting for confirmation…'
-                                  : 'APPROVE & DEPOSIT USDT'}
+                                {listingCreated
+                                  ? 'Listing created'
+                                  : isSubmitting
+                                    ? 'Waiting for confirmation…'
+                                    : 'APPROVE & DEPOSIT USDT'}
                               </SecondaryButton>
                             </div>
                           </div>
