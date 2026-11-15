@@ -21,3 +21,13 @@ yarn-error.log
 /e2e-videos
 /test-results
 /playwright-report
+/docs
+
+# OS / editor junk
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*~

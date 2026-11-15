@@ -83,15 +83,41 @@ export default function MarketingLayout({ title, children }: Props) {
             </Link>
 
             <nav className="hidden items-center gap-4 text-sm font-medium text-ink-muted md:flex lg:gap-5">
-              <Link href={`${route('home')}#use-cases`} className="transition hover:text-ink">
-                Use cases
-              </Link>
-              <Link href={`${route('home')}#how-it-works`} className="transition hover:text-ink">
-                How it works
-              </Link>
-              <Link href={`${route('home')}#markets`} className="transition hover:text-ink">
-                Markets
-              </Link>
+              <Dropdown
+                align="left"
+                width="48"
+                renderTrigger={() => (
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 transition hover:text-ink"
+                  >
+                    Explore
+                    <svg
+                      className="h-3.5 w-3.5 opacity-70"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </button>
+                )}
+              >
+                <DropdownLink href={`${route('home')}#use-cases`}>
+                  Use cases
+                </DropdownLink>
+                <DropdownLink href={`${route('home')}#how-it-works`}>
+                  How it works
+                </DropdownLink>
+                <DropdownLink href={`${route('home')}#markets`}>
+                  Markets
+                </DropdownLink>
+              </Dropdown>
               <Link
                 href={route('listings')}
                 className={`transition hover:text-ink ${route().current('listings') ? 'text-ink' : ''}`}
@@ -104,7 +130,10 @@ export default function MarketingLayout({ title, children }: Props) {
               >
                 MoMo offers
               </Link>
-              <Link href={route('pay')} className="transition hover:text-ink">
+              <Link
+                href={route('pay')}
+                className={`transition hover:text-ink ${route().current('pay') ? 'text-ink' : ''}`}
+              >
                 Pay with USDT
               </Link>
             </nav>
@@ -170,7 +199,10 @@ export default function MarketingLayout({ title, children }: Props) {
                 </>
               ) : (
                 <>
-                  <MetamaskButton loginWithMetamask={loginWithMetamask} />
+                  <MetamaskButton
+                    compact
+                    loginWithMetamask={loginWithMetamask}
+                  />
                   <Link
                     href={route('login')}
                     className="rounded-lg px-3 py-2 text-sm font-semibold text-ink-muted transition hover:text-ink"
