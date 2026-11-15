@@ -98,7 +98,8 @@ class EmpiyaOperatorService
             'EMPIYA_OPERATOR_PRIVATE_KEY' => (string) config('empiya.operator_private_key'),
             'EMPIYA_P2P_ADDRESS' => (string) config('empiya.p2p_address'),
             'EMPIYA_PAYMENTS_ADDRESS' => (string) config('empiya.payments_address'),
-            'PATH' => getenv('PATH') ?: '/usr/local/bin:/usr/bin:/bin',
+            // Prefer image Node (nodesource) over any empty/odd inherited PATH.
+            'PATH' => '/usr/local/bin:/usr/bin:/bin:'.(getenv('PATH') ?: ''),
         ];
 
         $result = Process::env($env)
@@ -110,16 +111,25 @@ class EmpiyaOperatorService
                 json_encode($payload, JSON_THROW_ON_ERROR),
             ]);
 
-        $output = trim($result->output() ?: $result->errorOutput());
+        $stdout = trim($result->output());
+        $stderr = trim($result->errorOutput());
+        $output = $stdout !== '' ? $stdout : $stderr;
         $decoded = json_decode($output, true);
 
         if (! is_array($decoded)) {
             Log::error('Empiya operator script returned invalid JSON', [
                 'action' => $action,
-                'output' => $output,
+                'stdout' => $stdout,
+                'stderr' => $stderr,
                 'exit' => $result->exitCode(),
             ]);
-            throw new RuntimeException('Operator script failed: invalid response.');
+            $hint = $stderr !== '' ? $stderr : ($stdout !== '' ? $stdout : 'empty output');
+            if (str_contains(strtolower($hint), 'not found') || $result->exitCode() === 127) {
+                $hint = 'node binary missing or not executable — install Node.js in the runtime image';
+            }
+            throw new RuntimeException(
+                'Operator script failed: invalid response ('.$hint.').'
+            );
         }
 
         if (! ($decoded['ok'] ?? false)) {

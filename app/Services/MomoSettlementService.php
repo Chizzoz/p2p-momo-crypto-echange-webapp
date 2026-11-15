@@ -307,6 +307,64 @@ class MomoSettlementService
         return $transfer->fresh();
     }
 
+    /**
+     * Retry operator side-effects for MoMo-completed transfers that never
+     * finished release/settle (e.g. Node missing in the runtime image).
+     *
+     * @return array{retried: int, skipped: int, errors: list<string>}
+     */
+    public function retryStuckOperatorSettlements(?int $transferId = null): array
+    {
+        $query = MomoTransfer::query()
+            ->where('status', MomoTransfer::STATUS_COMPLETED)
+            ->whereIn('purpose', [
+                MomoTransfer::PURPOSE_P2P_BUY,
+                MomoTransfer::PURPOSE_PAY_REDEEM,
+            ])
+            ->orderBy('id');
+
+        if ($transferId) {
+            $query->where('id', $transferId);
+        }
+
+        $retried = 0;
+        $skipped = 0;
+        $errors = [];
+
+        foreach ($query->get() as $transfer) {
+            $meta = is_array($transfer->metadata) ? $transfer->metadata : [];
+
+            if ($transfer->purpose === MomoTransfer::PURPOSE_P2P_BUY) {
+                if (! empty($meta['released'])) {
+                    $skipped++;
+                    continue;
+                }
+                try {
+                    $this->handleDepositCompleted($transfer->fresh());
+                    $retried++;
+                } catch (\Throwable $e) {
+                    $errors[] = "transfer#{$transfer->id}: ".$e->getMessage();
+                }
+                continue;
+            }
+
+            if ($transfer->purpose === MomoTransfer::PURPOSE_PAY_REDEEM) {
+                if (! empty($meta['settled'])) {
+                    $skipped++;
+                    continue;
+                }
+                try {
+                    $this->handlePayoutCompleted($transfer->fresh());
+                    $retried++;
+                } catch (\Throwable $e) {
+                    $errors[] = "transfer#{$transfer->id}: ".$e->getMessage();
+                }
+            }
+        }
+
+        return compact('retried', 'skipped', 'errors');
+    }
+
     protected function handleDepositCompleted(MomoTransfer $transfer): void
     {
         if ($transfer->purpose === MomoTransfer::PURPOSE_P2P_BUY_ORDER) {

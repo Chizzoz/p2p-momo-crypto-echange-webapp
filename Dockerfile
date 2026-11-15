@@ -32,15 +32,21 @@ ENV VITE_CHAIN_ID=$VITE_CHAIN_ID \
 RUN npm run build
 
 # =============================================================================
-# Stage 2: FrankenPHP runtime (Laravel 13 / PHP 8.3)
+# Stage 2: FrankenPHP runtime (Laravel / PHP 8.3) + Node for operator scripts
 # =============================================================================
 FROM dunglas/frankenphp:1-php8.3 AS runner
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
-    unzip \
+    ca-certificates \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    git \
+    gnupg \
+    unzip \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/* \
+    && node -v \
+    && npm -v
 
 ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
 
@@ -65,6 +71,11 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 COPY . .
 COPY --from=frontend /app/public/build ./public/build
+
+# Operator script (scripts/empiya-operator.mjs) needs Node + ethers at runtime.
+RUN npm ci --omit=dev --no-audit --no-fund \
+    && test -f scripts/empiya-operator.mjs \
+    && node --input-type=module -e "import('ethers').then(() => console.log('ethers ok'))"
 
 ENV COMPOSER_ALLOW_SUPERUSER=1
 RUN composer install \
