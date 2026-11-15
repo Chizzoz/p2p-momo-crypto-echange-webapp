@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import { toSvg } from 'jdenticon';
 import axios from 'axios';
 import useRoute from '@/Hooks/useRoute';
@@ -20,6 +20,14 @@ import {
 import { formatUsdtAmount } from '@/lib/units';
 
 declare let window: any;
+
+/** Soft-refresh listing props without a full browser reload. */
+function softRefreshListings() {
+  router.reload({
+    only: ['listings', 'all_transactions', 'my_listings', 'purchases'],
+    preserveScroll: true,
+  });
+}
 
 type ListingRow = Record<string, any>;
 
@@ -84,22 +92,25 @@ export default function ListingCard(props: Props) {
   const svgString = toSvg(transactionObj.eth_address || 'e-Mpiya P2P', 56);
   const total =
     Number(transactionObj.price || 0) * Number(transactionObj.amount || 0);
-  const status = Number(transactionObj.status);
-  const isOpen = status === 0;
-  const isProcessing = status === 1;
-  const isSold = status === 2;
-  const isCancelled = status === 3;
   const listingId = transactionObj.listing_id;
   const isSeller =
     user &&
     transactionObj.eth_address &&
     String(user.eth_address || '').toLowerCase() ===
       String(transactionObj.eth_address).toLowerCase();
-  const alreadyReserved =
-    Boolean(transactionObj.reservation_id) || isProcessing;
 
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  /** Override listing status after on-chain sync so UI updates without a hard reload. */
+  const [localStatus, setLocalStatus] = useState<number | null>(null);
+  const status =
+    localStatus !== null ? localStatus : Number(transactionObj.status);
+  const isOpen = status === 0;
+  const isProcessing = status === 1;
+  const isSold = status === 2;
+  const isCancelled = status === 3;
+  const alreadyReserved =
+    Boolean(transactionObj.reservation_id) || isProcessing;
   const [buyerConfirmed, setBuyerConfirmed] = useState(alreadyReserved);
   const [reserveTxHash, setReserveTxHash] = useState('');
   const [pendingBuyer, setPendingBuyer] = useState<string | null>(
@@ -253,12 +264,19 @@ export default function ListingCard(props: Props) {
             // ignore
           }
           if (chainStatus === 2) {
-            setMessage('Trade already completed on-chain. Refreshing…');
-            window.setTimeout(() => window.location.reload(), 900);
+            setLocalStatus(2);
+            setMomoDepositCompleted(true);
+            setWaitingOnResponse(false);
+            setMessage(
+              'Trade already completed on-chain — USDT was released to the buyer.',
+            );
+            softRefreshListings();
           } else if (chainStatus === 0) {
+            setLocalStatus(0);
             setPendingBuyer(null);
             setBuyerConfirmed(false);
             setMessage('On-chain reservation ended. Listing can be reopened.');
+            softRefreshListings();
           }
           return;
         }
@@ -464,12 +482,12 @@ export default function ListingCard(props: Props) {
       );
       setPendingBuyer(null);
       setBuyerConfirmed(false);
+      setLocalStatus(0);
       setMessage(
         data.message ||
           'Reservation expired. Listing is open again for other buyers.',
       );
-      // Soft-refresh so marketplace/dashboard props catch up.
-      window.setTimeout(() => window.location.reload(), 800);
+      softRefreshListings();
     } catch (error: any) {
       setMessage(
         error?.response?.data?.message ||
@@ -552,11 +570,17 @@ export default function ListingCard(props: Props) {
       // Best-effort; UI message still reflects chain.
     }
     if (chainStatus === 2) {
+      setLocalStatus(2);
       setBuyerConfirmed(true);
+      setMomoDepositCompleted(true);
     }
     if (chainStatus === 0) {
+      setLocalStatus(0);
       setPendingBuyer(null);
       setBuyerConfirmed(false);
+    }
+    if (chainStatus === 3) {
+      setLocalStatus(3);
     }
   }
 
@@ -581,11 +605,13 @@ export default function ListingCard(props: Props) {
 
       if (chainStatus === 2) {
         await syncListingFromChain(onchain);
+        setLocalStatus(2);
+        setMomoDepositCompleted(true);
         setWaitingOnResponse(false);
         setMessage(
-          'This trade is already complete on-chain — USDT was released to the buyer. Refreshing…',
+          'This trade is already complete on-chain — USDT was released to the buyer.',
         );
-        window.setTimeout(() => window.location.reload(), 1200);
+        softRefreshListings();
         return;
       }
       if (chainStatus === 3) {
