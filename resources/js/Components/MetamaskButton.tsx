@@ -3,9 +3,14 @@ import React, { useState } from 'react';
 
 type Props = {
   loginWithMetamask: () => Promise<void>;
+  /** Tighter padding / shorter label for crowded headers. */
+  compact?: boolean;
 };
 
-export default function MetamaskButton({ loginWithMetamask }: Props) {
+export default function MetamaskButton({
+  loginWithMetamask,
+  compact = false,
+}: Props) {
   const [isConnecting, setIsConnecting] = useState(false);
 
   async function handleClick() {
@@ -26,7 +31,8 @@ export default function MetamaskButton({ loginWithMetamask }: Props) {
       <button
         type="button"
         className={classNames(
-          'text-gray-900 bg-white hover:bg-gray-100 border border-gray-200 focus:ring-4 focus:outline-none focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-block items-center dark:focus:ring-gray-600 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:bg-gray-700 disabled:opacity-25 disabled:pointer-events-none',
+          'text-gray-900 bg-white hover:bg-gray-100 border border-gray-200 focus:ring-4 focus:outline-none focus:ring-gray-100 font-medium rounded-lg text-sm text-center inline-flex items-center dark:focus:ring-gray-600 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:bg-gray-700 disabled:opacity-25 disabled:pointer-events-none',
+          compact ? 'gap-1.5 px-3 py-2' : 'px-5 py-2.5',
         )}
         onClick={() => handleClick()}
         disabled={isConnecting}
@@ -34,7 +40,10 @@ export default function MetamaskButton({ loginWithMetamask }: Props) {
       >
         <svg
           aria-hidden="true"
-          className="mr-2 -ml-1 w-6 h-5 inline-flex"
+          className={classNames(
+            'inline-flex shrink-0',
+            compact ? 'h-4 w-5' : 'mr-2 -ml-1 h-5 w-6',
+          )}
           viewBox="0 0 2405 2501"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
@@ -470,7 +479,11 @@ export default function MetamaskButton({ loginWithMetamask }: Props) {
             </clipPath>{' '}
           </defs>{' '}
         </svg>
-        {isConnecting ? 'Connecting…' : 'Connect with MetaMask'}
+        {isConnecting
+          ? 'Connecting…'
+          : compact
+            ? 'MetaMask'
+            : 'Connect with MetaMask'}
       </button>
     </div>
   );
