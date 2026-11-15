@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import axios from 'axios';
 import useRoute from '@/Hooks/useRoute';
+import {
+  clearAuthIntent,
+  currentReturnTo,
+  peekAuthIntent,
+  setAuthIntent,
+} from '@/lib/authIntent';
 import { ensureSepoliaChain, getBrowserProvider } from '@/lib/contracts';
 
 declare let window: any;
@@ -28,7 +34,7 @@ export default function useWalletAuth() {
   const closeDialog = () =>
     setDialog(current => ({ ...current, open: false }));
 
-  const loginWithMetamask = async () => {
+  const loginWithMetamask = async (redirectTo?: string) => {
     if (typeof window.ethereum === 'undefined') {
       setMetamaskModalOpen(true);
       return;
@@ -49,12 +55,16 @@ export default function useWalletAuth() {
       });
 
       if (status === 200) {
-        window.location = route('dashboard');
+        const intent = peekAuthIntent();
+        const target =
+          redirectTo || intent?.returnTo || currentReturnTo() || route('dashboard');
+        window.location.assign(target);
       }
     } catch (e: any) {
       console.error(e);
       const errorMessage: string = e?.message || '';
       if (errorMessage.includes('500')) {
+        clearAuthIntent();
         setDialog({
           open: true,
           title: 'Wallet connect error',
@@ -67,6 +77,7 @@ export default function useWalletAuth() {
 
   const openSellFlow = (isAuthenticated: boolean) => {
     if (!isAuthenticated) {
+      setAuthIntent({ kind: 'sell_usdt', returnTo: currentReturnTo() });
       void loginWithMetamask();
       return;
     }
@@ -75,6 +86,7 @@ export default function useWalletAuth() {
 
   const openMoMoFlow = (isAuthenticated: boolean) => {
     if (!isAuthenticated) {
+      setAuthIntent({ kind: 'sell_momo', returnTo: currentReturnTo() });
       void loginWithMetamask();
       return;
     }

@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import React, { createContext, FormEvent, ReactNode, useContext, useState } from 'react';
+import React, { FormEvent, ReactNode, useEffect, useState } from 'react';
 import ApplicationMark from '@/Components/ApplicationMark';
 import CreateMoMoOfferModal from '@/Components/CreateMoMoOfferModal';
 import CreateTransactionModal from '@/Components/CreateTransactionModal';
@@ -8,26 +8,19 @@ import Dropdown from '@/Components/Dropdown';
 import DropdownLink from '@/Components/DropdownLink';
 import GenericModal from '@/Components/GenericModal';
 import MetamaskButton from '@/Components/MetamaskButton';
+import {
+  MarketingActions,
+  MarketingActionsContext,
+} from '@/Contexts/MarketingActions';
 import useRoute from '@/Hooks/useRoute';
 import useTypedPage from '@/Hooks/useTypedPage';
 import useWalletAuth from '@/Hooks/useWalletAuth';
+import { takeAuthIntent } from '@/lib/authIntent';
 
-type MarketingActions = {
-  openSellFlow: () => void;
-  openMoMoFlow: () => void;
-  loginWithMetamask: () => Promise<void>;
-  isAuthenticated: boolean;
-};
-
-const MarketingActionsContext = createContext<MarketingActions | null>(null);
-
-export function useMarketingActions(): MarketingActions {
-  const ctx = useContext(MarketingActionsContext);
-  if (!ctx) {
-    throw new Error('useMarketingActions must be used within MarketingLayout');
-  }
-  return ctx;
-}
+export {
+  useMarketingActions,
+  useOptionalMarketingActions,
+} from '@/Contexts/MarketingActions';
 
 type Props = {
   title: string;
@@ -62,6 +55,20 @@ export default function MarketingLayout({ title, children }: Props) {
     openSellFlow: () => openSellFlow(isAuthenticated),
     openMoMoFlow: () => openMoMoFlow(isAuthenticated),
   };
+
+  // After MetaMask sign-up from a list CTA, reopen the create modal here.
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+    if (takeAuthIntent(intent => intent.kind === 'sell_usdt')) {
+      setCreateTransactionModalOpen(true);
+      return;
+    }
+    if (takeAuthIntent(intent => intent.kind === 'sell_momo')) {
+      setCreateMoMoOfferModalOpen(true);
+    }
+  }, [isAuthenticated, setCreateTransactionModalOpen, setCreateMoMoOfferModalOpen]);
 
   function logout(e: FormEvent) {
     e.preventDefault();

@@ -67,8 +67,11 @@ export default function Dashboard() {
   const initialWallets =
     ((page.props as any).fiat_wallets as any[]) || [];
   const ledger = ((page.props as any).wallet_ledger as any[]) || [];
+  const payRedeems = ((page.props as any).pay_redeems as any[]) || [];
   const withdrawNetworks =
     ((page.props as any).withdraw_networks as any[]) || [];
+  const [payCheckId, setPayCheckId] = useState<number | null>(null);
+  const [payCheckMessage, setPayCheckMessage] = useState('');
 
   const [walletAddress, setWalletAddress] = useState(
     String(user?.eth_address || ''),
@@ -128,6 +131,40 @@ export default function Dashboard() {
       setWithdrawMethodId(String(networksForCurrency[0]?.id || ''));
     }
   }, [networksForCurrency, withdrawMethodId]);
+
+  async function checkPayRedeem(id: number) {
+    setPayCheckId(id);
+    setPayCheckMessage('');
+    try {
+      const { data } = await axios.get(route('momo_transfers.status', id));
+      const status = String(data.transfer?.status || '').toUpperCase();
+      const meta = data.transfer?.metadata || {};
+      if (status === 'COMPLETED') {
+        setPayCheckMessage(
+          meta.settled
+            ? `Payment #${id} completed and settled on-chain.`
+            : `Payment #${id} completed; settle requested.`,
+        );
+      } else if (status === 'FAILED') {
+        setPayCheckMessage(
+          `Payment #${id} failed${
+            meta.chain_refunded ? '; chain refund attempted.' : '.'
+          }`,
+        );
+      } else {
+        setPayCheckMessage(`Payment #${id} still ${status || 'pending'}.`);
+      }
+      router.reload({ only: ['pay_redeems'] });
+    } catch (error: any) {
+      setPayCheckMessage(
+        error?.response?.data?.message ||
+          error?.message ||
+          'Could not refresh payout status.',
+      );
+    } finally {
+      setPayCheckId(null);
+    }
+  }
 
   async function submitWithdraw(e: React.FormEvent) {
     e.preventDefault();
@@ -220,6 +257,12 @@ export default function Dashboard() {
               className="inline-flex rounded-lg border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink hover:border-emerald"
             >
               USDT offers
+            </Link>
+            <Link
+              href={route('pay')}
+              className="inline-flex rounded-lg border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink hover:border-emerald"
+            >
+              Pay with USDT
             </Link>
           </div>
         </div>
@@ -459,6 +502,102 @@ export default function Dashboard() {
                   </p>
                 )}
               </div>
+            </section>
+
+            <section className="rounded-2xl border border-[var(--line)] bg-white p-6 shadow-soft">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="font-display text-xl font-bold text-ink">
+                    Pay with USDT
+                  </h3>
+                  <p className="mt-1 text-sm text-ink-muted">
+                    MoMo redeem payouts — check status if you refreshed mid-flow
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <Link
+                    href={route('pay.history')}
+                    className="text-sm font-semibold text-emerald hover:underline"
+                  >
+                    View all activity
+                  </Link>
+                  <Link
+                    href={route('pay')}
+                    className="text-sm font-semibold text-ink hover:underline"
+                  >
+                    New payment
+                  </Link>
+                </div>
+              </div>
+              {payCheckMessage ? (
+                <p className="mt-3 text-sm text-ink-muted">{payCheckMessage}</p>
+              ) : null}
+              {payRedeems.length > 0 ? (
+                <ul className="mt-5 divide-y divide-[var(--line)]">
+                  {payRedeems.map((row: any) => {
+                    const status = String(row.status || '').toUpperCase();
+                    const open =
+                      status !== 'COMPLETED' && status !== 'FAILED';
+                    return (
+                      <li
+                        key={row.id}
+                        className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm"
+                      >
+                        <div>
+                          <p className="font-medium text-ink">
+                            {row.usdt_amount
+                              ? `${row.usdt_amount} USDT`
+                              : 'USDT'}{' '}
+                            → {row.currency} {row.amount}
+                          </p>
+                          <p className="text-xs text-ink-muted">
+                            #{row.id}
+                            {row.settled ? ' · settled' : ''}
+                            {row.chain_refunded ? ' · refunded' : ''}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`rounded-md px-2.5 py-1 text-xs font-semibold ${
+                              status === 'COMPLETED'
+                                ? 'bg-emerald/15 text-emerald-deep'
+                                : status === 'FAILED'
+                                  ? 'bg-sand text-ink-muted'
+                                  : 'bg-accent/30 text-ink'
+                            }`}
+                          >
+                            {row.status}
+                          </span>
+                          {open ? (
+                            <button
+                              type="button"
+                              disabled={payCheckId === row.id}
+                              onClick={() => void checkPayRedeem(row.id)}
+                              className="rounded-lg border border-[var(--line)] px-3 py-1.5 text-xs font-semibold text-ink disabled:opacity-60"
+                            >
+                              {payCheckId === row.id
+                                ? 'Checking…'
+                                : 'Check status'}
+                            </button>
+                          ) : null}
+                          {status === 'COMPLETED' ? (
+                            <Link
+                              href={`${route('pay')}?repeat=${row.id}`}
+                              className="rounded-lg border border-[var(--line)] px-3 py-1.5 text-xs font-semibold text-ink hover:border-emerald"
+                            >
+                              Repeat
+                            </Link>
+                          ) : null}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="mt-6 text-sm text-ink-muted">
+                  No Pay with USDT payments yet.
+                </p>
+              )}
             </section>
 
             <section className="rounded-2xl border border-[var(--line)] bg-white p-6 shadow-soft">
