@@ -109,8 +109,13 @@ export default function ListingCard(props: Props) {
   const [awaitingContinue, setAwaitingContinue] = useState(false);
   const [needsMoMoProfile, setNeedsMoMoProfile] = useState(false);
   const [waitingOnResponse, setWaitingOnResponse] = useState(false);
+  /** MoMo deposit reached COMPLETED — block Continue / release to avoid double-pay. */
+  const [momoDepositCompleted, setMomoDepositCompleted] = useState(false);
   const cardRef = useRef<HTMLElement | null>(null);
   const pollTimerRef = useRef<number | null>(null);
+  const momoDoneStorageKey = listingId
+    ? `empiya.momoDepositDone.${listingId}`
+    : null;
 
   useEffect(() => {
     return () => {
@@ -119,6 +124,19 @@ export default function ListingCard(props: Props) {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!momoDoneStorageKey || typeof window === 'undefined') {
+      return;
+    }
+    try {
+      if (sessionStorage.getItem(momoDoneStorageKey) === '1') {
+        setMomoDepositCompleted(true);
+      }
+    } catch {
+      // ignore
+    }
+  }, [momoDoneStorageKey]);
 
   const userEth = String(user?.eth_address || '').toLowerCase();
   const isPendingBuyerForMe =
@@ -155,6 +173,7 @@ export default function ListingCard(props: Props) {
     !removed &&
     !isSold &&
     !isCancelled &&
+    !momoDepositCompleted &&
     sellerHasConfirmed &&
     (isSeller || isPendingBuyerForMe) &&
     (isProcessing || Boolean(transactionObj.reservation_id));
@@ -164,6 +183,7 @@ export default function ListingCard(props: Props) {
     isPendingBuyerForMe &&
     sellerHasConfirmed &&
     !isSold &&
+    !momoDepositCompleted &&
     (isOpen || isProcessing);
   const showWaitingForSeller =
     Boolean(user) &&
@@ -633,6 +653,14 @@ export default function ListingCard(props: Props) {
       const status = data.transfer?.status;
       if (status === 'COMPLETED') {
         setWaitingOnResponse(false);
+        setMomoDepositCompleted(true);
+        if (momoDoneStorageKey) {
+          try {
+            sessionStorage.setItem(momoDoneStorageKey, '1');
+          } catch {
+            // ignore
+          }
+        }
         setMessage(
           'Payment completed. USDT release and seller payout are processing.',
         );
@@ -640,6 +668,7 @@ export default function ListingCard(props: Props) {
       }
       if (status === 'FAILED') {
         setWaitingOnResponse(false);
+        setMomoDepositCompleted(false);
         setMessage(
           'MoMo payment failed. The reservation will be refunded if possible.',
         );
@@ -800,6 +829,11 @@ export default function ListingCard(props: Props) {
         {showWaitingForSeller && (
           <span className="rounded-lg bg-sand px-3 py-2 text-xs font-semibold text-ink-muted">
             Waiting for seller confirmation
+          </span>
+        )}
+        {momoDepositCompleted && !isSold && (
+          <span className="rounded-lg bg-emerald/15 px-3 py-2 text-xs font-semibold text-emerald-deep">
+            MoMo paid · settling
           </span>
         )}
         {(showBuy || showContinuePayment) && (
