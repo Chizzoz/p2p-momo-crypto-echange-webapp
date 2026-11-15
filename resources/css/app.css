@@ -88,11 +88,102 @@
   animation: hero-drift 18s ease-in-out infinite;
 }
 
+@keyframes waiting-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.85);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes waiting-bar {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(280%);
+  }
+}
+
+.waiting-indicator {
+  border-radius: 0.75rem;
+  border: 1px solid rgba(13, 122, 95, 0.18);
+  background: rgba(216, 243, 231, 0.55);
+  padding: 0.75rem 0.875rem;
+}
+
+.waiting-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.waiting-dots > span {
+  display: block;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 9999px;
+  background: var(--emerald);
+  animation: waiting-dot 1.2s ease-in-out infinite;
+}
+
+.waiting-dots > span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.waiting-dots > span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.waiting-progress {
+  position: relative;
+  height: 0.2rem;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: rgba(13, 122, 95, 0.12);
+}
+
+.waiting-progress::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 36%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--emerald),
+    transparent
+  );
+  animation: waiting-bar 1.35s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-rise,
   .hero-rise-delay,
   .hero-rise-delay-2,
   .hero-atmosphere {
     animation: none;
+  }
+
+  .waiting-dots > span,
+  .waiting-progress::after {
+    animation: none;
+  }
+
+  .waiting-dots > span {
+    opacity: 0.85;
+  }
+
+  .waiting-progress::after {
+    width: 100%;
+    transform: none;
+    background: var(--emerald);
+    opacity: 0.45;
   }
 }

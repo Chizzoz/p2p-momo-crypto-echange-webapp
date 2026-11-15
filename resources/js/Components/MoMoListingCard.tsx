@@ -1,10 +1,18 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { router } from '@inertiajs/react';
 import { toSvg } from 'jdenticon';
 import axios from 'axios';
 import useRoute from '@/Hooks/useRoute';
 import useTypedPage from '@/Hooks/useTypedPage';
+import WaitingIndicator from '@/Components/WaitingIndicator';
+import { useOptionalMarketingActions } from '@/Contexts/MarketingActions';
 import { chainConfig } from '@/lib/chain';
+import {
+  clearAuthIntent,
+  currentReturnTo,
+  peekAuthIntent,
+  setAuthIntent,
+} from '@/lib/authIntent';
 import {
   assertDepositAllowed,
   assertUsdtBalance,
@@ -58,6 +66,7 @@ export default function MoMoListingCard({
   const route = useRoute();
   const page = useTypedPage();
   const user = page.props.user;
+  const marketing = useOptionalMarketingActions();
   const svgString = toSvg(order.buyer_address || 'e-Mpiya MoMo', 56);
 
   const isLister = Boolean(user && user.id === order.user_id);
@@ -66,18 +75,42 @@ export default function MoMoListingCard({
     showOwnerActions &&
     isLister &&
     (order.status === 'open' || order.status === 'pending_momo');
-  const canFill = isOpen && user && !isLister;
+  const canFill = isOpen && !isLister;
 
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [removed, setRemoved] = useState(false);
+  const [awaitingContinue, setAwaitingContinue] = useState(false);
+  const cardRef = useRef<HTMLElement | null>(null);
 
   const fiatTotal = Number(order.fiat_amount);
   const currency = String(order.currency || 'ZMW').toUpperCase();
 
+  // After guest MetaMask sign-up, return here and prompt to continue.
+  useEffect(() => {
+    if (!user || !canFill) {
+      return;
+    }
+    const intent = peekAuthIntent();
+    if (intent?.kind !== 'fill' || intent.orderId !== order.id) {
+      return;
+    }
+    setAwaitingContinue(true);
+    setMessage('You are signed in. Click Fill with USDT to continue.');
+    cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [user, canFill, order.id]);
+
   async function fillWithUsdt() {
     if (!user) {
-      setMessage('Log in and connect MetaMask to fill with USDT.');
+      setAuthIntent({
+        kind: 'fill',
+        orderId: order.id,
+        returnTo: currentReturnTo(),
+      });
+      setMessage('Connect MetaMask to continue — you will return here next.');
+      if (marketing?.loginWithMetamask) {
+        await marketing.loginWithMetamask();
+      }
       return;
     }
 
@@ -123,6 +156,8 @@ export default function MoMoListingCard({
         reservation_id: String(last.reservationId ?? ''),
       });
 
+      clearAuthIntent();
+      setAwaitingContinue(false);
       setMessage(data.message || 'Fill complete.');
       setRemoved(true);
       router.reload({ only: ['open_orders', 'my_orders'] });
@@ -162,7 +197,14 @@ export default function MoMoListingCard({
   }
 
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--line)] bg-white shadow-soft">
+    <article
+      ref={cardRef}
+      className={`flex h-full flex-col overflow-hidden rounded-2xl border bg-white shadow-soft ${
+        awaitingContinue
+          ? 'border-emerald ring-2 ring-emerald/30'
+          : 'border-[var(--line)]'
+      }`}
+    >
       <div className="flex items-center gap-3 border-b border-[var(--line)] px-5 py-4">
         <img
           src={`data:image/svg+xml;utf8,${encodeURIComponent(svgString)}`}
@@ -214,8 +256,26 @@ export default function MoMoListingCard({
           </p>
         </div>
 
-        {message ? (
-          <p className="mt-4 break-words text-xs text-ink-muted">{message}</p>
+        {!message && order.status === 'pending_momo' ? (
+          <div className="mt-4">
+            <WaitingIndicator message="Approve the MoMo PIN prompt on your phone. Waiting for deposit confirmation…" />
+          </div>
+        ) : null}
+        {message && busy ? (
+          <div className="mt-4">
+            <WaitingIndicator message={message} />
+          </div>
+        ) : null}
+        {message && !busy ? (
+          <p
+            className={`mt-4 break-words text-xs ${
+              awaitingContinue
+                ? 'font-medium text-emerald-deep'
+                : 'text-ink-muted'
+            }`}
+          >
+            {message}
+          </p>
         ) : null}
       </div>
 
@@ -236,7 +296,11 @@ export default function MoMoListingCard({
               onClick={() => void fillWithUsdt()}
               className="rounded-lg bg-emerald px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-deep disabled:opacity-60"
             >
-              {busy ? 'Filling…' : 'Fill with USDT'}
+              {busy
+                ? 'Filling…'
+                : awaitingContinue && user
+                  ? 'Continue fill'
+                  : 'Fill with USDT'}
             </button>
           )}
           {isOpen && isLister && !showOwnerActions && (

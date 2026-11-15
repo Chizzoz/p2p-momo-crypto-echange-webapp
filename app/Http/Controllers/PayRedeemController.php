@@ -7,12 +7,44 @@ use App\Services\MomoSettlementService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class PayRedeemController extends Controller
 {
     public function __construct(
         protected MomoSettlementService $settlement,
     ) {}
+
+    public function page(Request $request): Response
+    {
+        $user = $request->user();
+        $repeatId = (int) $request->integer('repeat', 0);
+
+        return Inertia::render('PayRedeem', [
+            'pay_redeems' => $user
+                ? $this->settlement->recentPayRedeemsForUser((int) $user->id, 5)
+                : [],
+            'repeat_payment' => ($user && $repeatId > 0)
+                ? $this->settlement->repeatablePayRedeemForUser((int) $user->id, $repeatId)
+                : null,
+        ]);
+    }
+
+    public function history(Request $request): Response
+    {
+        $perPage = (int) $request->integer('per_page', 10);
+
+        return Inertia::render('PayRedeemHistory', [
+            'pay_redeems' => $this->settlement->paginatePayRedeemsForUser(
+                (int) $request->user()->id,
+                $perPage,
+            ),
+            'filters' => [
+                'per_page' => in_array($perPage, [10, 25, 50, 100], true) ? $perPage : 10,
+            ],
+        ]);
+    }
 
     public function store(Request $request): JsonResponse
     {
@@ -65,7 +97,7 @@ class PayRedeemController extends Controller
         }
 
         return response()->json([
-            'transfer' => $transfer,
+            'transfer' => $this->settlement->serializePayRedeem($transfer),
             'message' => 'MoMo payout initiated. Waiting for confirmation before on-chain settle.',
         ]);
     }

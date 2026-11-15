@@ -666,4 +666,88 @@ class MomoSettlementService
         $transfer->metadata = $meta;
         $transfer->save();
     }
+
+    /**
+     * Recent Pay with USDT · redeem MoMo rows for dashboard / pay page.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function recentPayRedeemsForUser(int $userId, int $limit = 20): array
+    {
+        return MomoTransfer::query()
+            ->where('user_id', $userId)
+            ->where('purpose', MomoTransfer::PURPOSE_PAY_REDEEM)
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get()
+            ->map(fn (MomoTransfer $transfer) => $this->serializePayRedeem($transfer))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Paginated Pay with USDT history for the dedicated activity page.
+     *
+     * @param  list<int>  $allowedPerPage
+     */
+    public function paginatePayRedeemsForUser(
+        int $userId,
+        int $perPage = 10,
+        array $allowedPerPage = [10, 25, 50, 100],
+    ): \Illuminate\Contracts\Pagination\LengthAwarePaginator {
+        if (! in_array($perPage, $allowedPerPage, true)) {
+            $perPage = 10;
+        }
+
+        return MomoTransfer::query()
+            ->where('user_id', $userId)
+            ->where('purpose', MomoTransfer::PURPOSE_PAY_REDEEM)
+            ->orderByDesc('id')
+            ->paginate($perPage)
+            ->withQueryString()
+            ->through(fn (MomoTransfer $transfer) => $this->serializePayRedeem($transfer));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function serializePayRedeem(MomoTransfer $transfer): array
+    {
+        $meta = is_array($transfer->metadata) ? $transfer->metadata : [];
+
+        return [
+            'id' => $transfer->id,
+            'status' => $transfer->status,
+            'amount' => (string) $transfer->amount,
+            'currency' => strtoupper((string) ($transfer->currency ?: '')),
+            'usdt_amount' => isset($meta['usdt_amount'])
+                ? (string) $meta['usdt_amount']
+                : null,
+            'payment_id' => $transfer->payment_id,
+            'phone' => $transfer->phone,
+            'provider' => $transfer->provider,
+            'settled' => ! empty($meta['settled']),
+            'chain_refunded' => ! empty($meta['chain_refunded']),
+            'failure_message' => $meta['failure_message'] ?? $meta['failure_code'] ?? null,
+            'created_at' => $transfer->created_at?->toIso8601String(),
+            'updated_at' => $transfer->updated_at?->toIso8601String(),
+        ];
+    }
+
+    /**
+     * Load a completed pay_redeem the user owns, for "repeat payment" prefills.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function repeatablePayRedeemForUser(int $userId, int $transferId): ?array
+    {
+        $transfer = MomoTransfer::query()
+            ->where('id', $transferId)
+            ->where('user_id', $userId)
+            ->where('purpose', MomoTransfer::PURPOSE_PAY_REDEEM)
+            ->where('status', MomoTransfer::STATUS_COMPLETED)
+            ->first();
+
+        return $transfer ? $this->serializePayRedeem($transfer) : null;
+    }
 }

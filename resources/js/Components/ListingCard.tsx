@@ -1,8 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link } from '@inertiajs/react';
 import { toSvg } from 'jdenticon';
 import axios from 'axios';
 import useRoute from '@/Hooks/useRoute';
 import useTypedPage from '@/Hooks/useTypedPage';
+import { useOptionalMarketingActions } from '@/Contexts/MarketingActions';
+import WaitingIndicator from '@/Components/WaitingIndicator';
+import {
+  clearAuthIntent,
+  currentReturnTo,
+  peekAuthIntent,
+  setAuthIntent,
+} from '@/lib/authIntent';
 import {
   ensureSepoliaChain,
   getBrowserProvider,
@@ -70,6 +79,7 @@ export default function ListingCard(props: Props) {
   const route = useRoute();
   const page = useTypedPage();
   const user = page.props.user;
+  const marketing = useOptionalMarketingActions();
   const transactionObj = resolveListing(props);
   const svgString = toSvg(transactionObj.eth_address || 'e-Mpiya P2P', 56);
   const total =
@@ -96,6 +106,19 @@ export default function ListingCard(props: Props) {
     transactionObj.reserved_buyer || null,
   );
   const [removed, setRemoved] = useState(false);
+  const [awaitingContinue, setAwaitingContinue] = useState(false);
+  const [needsMoMoProfile, setNeedsMoMoProfile] = useState(false);
+  const [waitingOnResponse, setWaitingOnResponse] = useState(false);
+  const cardRef = useRef<HTMLElement | null>(null);
+  const pollTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pollTimerRef.current !== null) {
+        window.clearTimeout(pollTimerRef.current);
+      }
+    };
+  }, []);
 
   const userEth = String(user?.eth_address || '').toLowerCase();
   const isPendingBuyerForMe =
@@ -120,7 +143,6 @@ export default function ListingCard(props: Props) {
   const showBuyerConfirmed =
     isSeller && pendingBuyer && buyerConfirmed && !isSold && !isCancelled;
   const showBuy =
-    Boolean(user) &&
     isOpen &&
     !isSeller &&
     !pendingBuyer &&
@@ -283,13 +305,57 @@ export default function ListingCard(props: Props) {
     route,
   ]);
 
+  // After guest MetaMask sign-up, return here and prompt to continue.
+  useEffect(() => {
+    if (!user || !listingId || !showBuy) {
+      return;
+    }
+    const intent = peekAuthIntent();
+    if (
+      intent?.kind !== 'buy' ||
+      String(intent.listingId) !== String(listingId)
+    ) {
+      return;
+    }
+    setAwaitingContinue(true);
+    if (!user.mobile_number || !user.payment_method_id) {
+      setNeedsMoMoProfile(true);
+      setMessage(
+        'You are signed in. Add mobile money in Profile, then continue this purchase.',
+      );
+    } else {
+      setNeedsMoMoProfile(false);
+      setMessage('You are signed in. Click Buy with MoMo to continue.');
+    }
+    cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [user, listingId, showBuy]);
+
   async function requestBuy() {
     if (!user) {
-      setMessage('Log in and connect your wallet first.');
+      if (!listingId) {
+        return;
+      }
+      setAuthIntent({
+        kind: 'buy',
+        listingId,
+        returnTo: currentReturnTo(),
+      });
+      setMessage('Connect MetaMask to continue — you will return here next.');
+      if (marketing?.loginWithMetamask) {
+        await marketing.loginWithMetamask();
+      }
       return;
     }
     if (!user.mobile_number || !user.payment_method_id) {
-      setMessage('Bind mobile money in Profile before buying.');
+      setAuthIntent({
+        kind: 'buy',
+        listingId: listingId!,
+        returnTo: currentReturnTo(),
+      });
+      setNeedsMoMoProfile(true);
+      setMessage(
+        'Add mobile money in Profile, then return here to finish this purchase.',
+      );
       return;
     }
     if (!window.ethereum) {
@@ -304,6 +370,9 @@ export default function ListingCard(props: Props) {
       const provider = getBrowserProvider();
       const [buyer] = await provider.send('eth_requestAccounts', []);
       await axios.post(route('trades.request_buy', listingId), { buyer });
+      clearAuthIntent();
+      setAwaitingContinue(false);
+      setNeedsMoMoProfile(false);
       setPendingBuyer(buyer);
       setMessage(
         'Buy requested. Waiting for the seller to confirm your wallet — Continue payment will appear after that.',
@@ -476,6 +545,7 @@ export default function ListingCard(props: Props) {
       return;
     }
     setBusy(true);
+    setWaitingOnResponse(true);
     setMessage('Checking on-chain reservation…');
     try {
       await ensureSepoliaChain();
@@ -491,6 +561,7 @@ export default function ListingCard(props: Props) {
 
       if (chainStatus === 2) {
         await syncListingFromChain(onchain);
+        setWaitingOnResponse(false);
         setMessage(
           'This trade is already complete on-chain — USDT was released to the buyer. Refreshing…',
         );
@@ -499,23 +570,27 @@ export default function ListingCard(props: Props) {
       }
       if (chainStatus === 3) {
         await syncListingFromChain(onchain);
+        setWaitingOnResponse(false);
         setMessage('This listing was cancelled on-chain.');
         return;
       }
       if (chainStatus === 0) {
         await syncListingFromChain(onchain);
+        setWaitingOnResponse(false);
         setMessage(
           'On-chain reservation is no longer active (expired or reopened). Ask the seller to confirm again, or pick another listing.',
         );
         return;
       }
       if (chainStatus !== 1) {
+        setWaitingOnResponse(false);
         setMessage(
           `Unexpected on-chain status (${chainStatus}). Try refresh, or release/reopen the reservation.`,
         );
         return;
       }
       if (recipient !== String(buyer).toLowerCase()) {
+        setWaitingOnResponse(false);
         setMessage('This listing is reserved for another buyer.');
         return;
       }
@@ -537,8 +612,11 @@ export default function ListingCard(props: Props) {
 
       if (data.transfer?.id) {
         pollTransfer(data.transfer.id);
+      } else {
+        setWaitingOnResponse(false);
       }
     } catch (error: any) {
+      setWaitingOnResponse(false);
       setMessage(
         error?.response?.data?.message ||
           error?.message ||
@@ -554,16 +632,25 @@ export default function ListingCard(props: Props) {
       const { data } = await axios.get(route('momo_transfers.status', id));
       const status = data.transfer?.status;
       if (status === 'COMPLETED') {
-        setMessage('Payment completed. USDT release and seller payout are processing.');
+        setWaitingOnResponse(false);
+        setMessage(
+          'Payment completed. USDT release and seller payout are processing.',
+        );
         return;
       }
       if (status === 'FAILED') {
-        setMessage('MoMo payment failed. The reservation will be refunded if possible.');
+        setWaitingOnResponse(false);
+        setMessage(
+          'MoMo payment failed. The reservation will be refunded if possible.',
+        );
         return;
       }
-      setTimeout(() => pollTransfer(id), 8000);
+      setWaitingOnResponse(true);
+      pollTimerRef.current = window.setTimeout(() => pollTransfer(id), 8000);
     } catch {
-      // ignore poll errors
+      // Keep waiting UI; retry shortly.
+      setWaitingOnResponse(true);
+      pollTimerRef.current = window.setTimeout(() => pollTransfer(id), 8000);
     }
   }
 
@@ -572,7 +659,14 @@ export default function ListingCard(props: Props) {
   }
 
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--line)] bg-white shadow-soft">
+    <article
+      ref={cardRef}
+      className={`flex h-full flex-col overflow-hidden rounded-2xl border bg-white shadow-soft ${
+        awaitingContinue
+          ? 'border-emerald ring-2 ring-emerald/30'
+          : 'border-[var(--line)]'
+      }`}
+    >
       <div className="flex items-center gap-3 border-b border-[var(--line)] px-5 py-4">
         <img
           src={`data:image/svg+xml;utf8,${encodeURIComponent(svgString)}`}
@@ -631,21 +725,56 @@ export default function ListingCard(props: Props) {
           )}
         </div>
 
-        {message && (
-          <p
-            className="mt-4 break-all font-mono text-xs text-ink-muted"
-            title={reserveTxHash || undefined}
-          >
-            {message}
-          </p>
-        )}
+        {message && waitingOnResponse ? (
+          <div className="mt-4 space-y-2">
+            <WaitingIndicator message={message} />
+            {needsMoMoProfile && (
+              <Link
+                href={route('profile.show')}
+                className="inline-flex text-xs font-semibold text-emerald hover:underline"
+              >
+                Open Profile to add MoMo →
+              </Link>
+            )}
+          </div>
+        ) : null}
+        {message && !waitingOnResponse ? (
+          <div className="mt-4 space-y-2">
+            <p
+              className={`break-words text-xs ${
+                awaitingContinue
+                  ? 'font-medium text-emerald-deep'
+                  : 'font-mono text-ink-muted'
+              }`}
+              title={reserveTxHash || undefined}
+            >
+              {message}
+            </p>
+            {needsMoMoProfile && (
+              <Link
+                href={route('profile.show')}
+                className="inline-flex text-xs font-semibold text-emerald hover:underline"
+              >
+                Open Profile to add MoMo →
+              </Link>
+            )}
+          </div>
+        ) : null}
         {!message && showSellerAwaitingPayment && (
-          <p className="mt-4 text-xs text-ink-muted">
-            Waiting for buyer to pay with MoMo
-            {transactionObj.reservation_id
-              ? ` (reservation #${shortenHex(String(transactionObj.reservation_id), 4, 4)})`
-              : ''}
-          </p>
+          <div className="mt-4">
+            <WaitingIndicator
+              message={`Waiting for buyer to pay with MoMo${
+                transactionObj.reservation_id
+                  ? ` (reservation #${shortenHex(String(transactionObj.reservation_id), 4, 4)})`
+                  : ''
+              }`}
+            />
+          </div>
+        )}
+        {!message && showWaitingForSeller && (
+          <div className="mt-4">
+            <WaitingIndicator message="Waiting for the seller to confirm your wallet…" />
+          </div>
         )}
       </div>
 
@@ -682,17 +811,19 @@ export default function ListingCard(props: Props) {
                 onClick={() => void requestBuy()}
                 className="rounded-lg bg-emerald px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-deep disabled:opacity-60"
               >
-                Buy with MoMo
+                {awaitingContinue && user
+                  ? 'Continue purchase'
+                  : 'Buy with MoMo'}
               </button>
             )}
             {showContinuePayment && (
               <button
                 type="button"
-                disabled={busy || !listingId}
+                disabled={busy || waitingOnResponse || !listingId}
                 onClick={() => void continuePayment()}
-                className="rounded-lg border border-[var(--line)] px-4 py-2 text-sm font-semibold text-ink"
+                className="rounded-lg border border-[var(--line)] px-4 py-2 text-sm font-semibold text-ink disabled:opacity-60"
               >
-                Continue payment
+                {waitingOnResponse ? 'Waiting for MoMo…' : 'Continue payment'}
               </button>
             )}
           </div>

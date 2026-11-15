@@ -6,6 +6,7 @@ use App\Models\FiatWallet;
 use App\Models\PaymentMethod;
 use App\Models\WalletLedgerEntry;
 use App\Services\ListingCatalog;
+use App\Services\MomoSettlementService;
 use App\Services\WalletService;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -15,6 +16,7 @@ class MarketplaceController extends Controller
     public function __construct(
         protected ListingCatalog $listings,
         protected WalletService $wallets,
+        protected MomoSettlementService $settlement,
     ) {}
 
     public function index(): Response
@@ -99,6 +101,7 @@ class MarketplaceController extends Controller
         return Inertia::render('Dashboard', [
             'my_listings' => $myListings->values(),
             'purchases' => $purchases->values(),
+            'pay_redeems' => $this->settlement->recentPayRedeemsForUser((int) $user->id, 8),
             'fiat_wallets' => $fiatWallets->map(fn (FiatWallet $w) => [
                 'id' => $w->id,
                 'currency' => $w->currency,

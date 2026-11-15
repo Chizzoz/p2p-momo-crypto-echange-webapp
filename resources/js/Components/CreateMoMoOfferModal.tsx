@@ -7,6 +7,7 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
+import WaitingIndicator from '@/Components/WaitingIndicator';
 import useRoute from '@/Hooks/useRoute';
 import useTypedPage from '@/Hooks/useTypedPage';
 import {
@@ -224,7 +225,10 @@ export default function CreateMoMoOfferModal({
                       <InputError className="mt-2" />
                     </div>
 
-                    {statusMessage ? (
+                    {statusMessage && isSubmitting ? (
+                      <WaitingIndicator message={statusMessage} />
+                    ) : null}
+                    {statusMessage && !isSubmitting ? (
                       <p
                         role={statusTone === 'error' ? 'alert' : 'status'}
                         className={classNames(

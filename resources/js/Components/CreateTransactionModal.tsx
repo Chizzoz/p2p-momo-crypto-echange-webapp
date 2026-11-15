@@ -7,6 +7,7 @@ import InputLabel from './InputLabel';
 import TextInput from './TextInput';
 import InputError from './InputError';
 import SecondaryButton from './SecondaryButton';
+import WaitingIndicator from '@/Components/WaitingIndicator';
 import useRoute from '@/Hooks/useRoute';
 import useTypedPage from '@/Hooks/useTypedPage';
 import { chainConfig } from '@/lib/chain';
@@ -665,7 +666,13 @@ export default function CreateTransactionModal({
                               />
                             </div>
 
-                            {statusMessage && (
+                            {statusMessage &&
+                            isSubmitting &&
+                            statusTone !== 'error' ? (
+                              <WaitingIndicator message={statusMessage} />
+                            ) : null}
+                            {statusMessage &&
+                            !(isSubmitting && statusTone !== 'error') ? (
                               <p
                                 role={
                                   statusTone === 'error' ? 'alert' : 'status'
@@ -684,7 +691,7 @@ export default function CreateTransactionModal({
                               >
                                 {statusMessage}
                               </p>
-                            )}
+                            ) : null}
 
                             <div className="col-span-6 sm:col-span-4">
                               <SecondaryButton
